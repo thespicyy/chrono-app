@@ -1,0 +1,11 @@
+# Ce dépôt est servi tel quel par GitHub Pages. Les sources sont mixtes — la
+# machine tourne sous Windows avec `core.autocrlf = true` — donc les fins de
+# ligne sont normalisées ici plutôt que laissées au réglage local de qui
+# publie : `text=auto` laisse les binaires tranquilles (polices, images) et
+# `eol=lf` fixe le LF aussi bien dans le dépôt que dans la copie de travail.
+* text=auto eol=lf
+
+# Le CNAME est l'exception qui compte : GitHub Pages le lit octet par octet, et
+# un CRLF y fait abandonner le domaine personnalisé — donc éteint le
+# sous-domaine, sans message d'erreur nulle part.
+CNAME text eol=lf
