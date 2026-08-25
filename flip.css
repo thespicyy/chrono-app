@@ -1,0 +1,122 @@
+/*
+ * Horloge à volets — style partagé.
+ *
+ * Deux pages s'en servent : l'application de bureau (mode chrono) et la PWA
+ * chronomètre. Le fichier est donc à part plutôt que dupliqué : une bascule
+ * réglée d'un côté et pas de l'autre finirait par se voir.
+ *
+ * Il ne suppose rien de son entourage — ni largeur, ni position — hormis les
+ * variables de couleur de la charte et un conteneur déclaré `container-type`
+ * pour que les cartes puissent se mesurer dessus.
+ */
+
+/* ------------------------------------------------------ horloge à volets */
+/*
+ * Affichage du mode chrono : trois cartes qui basculent, comme une horloge à
+ * volets mécanique.
+ *
+ * CE QUI FAIT LA BASCULE — quatre couches par carte, et pas une de moins. Les
+ * deux moitiés fixes portent l'état d'arrivée et l'état de départ ; les deux
+ * rabats sont les volets qui bougent. Le rabat haut tombe en montrant l'ancien
+ * chiffre et découvre le nouveau ; le rabat bas se relève en apportant le
+ * nouveau et recouvre l'ancien. Une seule couche suffirait à animer quelque
+ * chose, mais on verrait une carte tourner sur elle-même, pas un volet tomber.
+ *
+ * Tout est dimensionné en `em` à partir du corps de la carte, lui-même calculé
+ * sur le conteneur : changer la taille de la fenêtre change une seule valeur,
+ * et la carte, le trait de refend et la charnière suivent ensemble.
+ *
+ * Monochrome, comme le Focus : le vert ne dit que « pause ».
+ */
+.flip{
+  display:flex;flex-direction:column;align-items:center;
+  width:auto;
+}
+.flip[hidden]{display:none;}
+
+.flip-cartes{
+  display:flex;gap:0.16em;
+  /* 18 cqw : la valeur qui remplit la largeur sans la dépasser. Trois cartes de
+     1,55 em et deux espaces occupent alors ~90 % de la place disponible. */
+  font-size:min(28cqh,18cqw,150px);
+}
+
+.flip-carte{
+  position:relative;
+  width:1.55em;height:1.30em;
+  /* La profondeur donne son relief à la bascule. Trop courte, le volet a l'air
+     de s'écraser ; trop longue, il tourne à plat comme une page. */
+  perspective:3.2em;
+  font-weight:700;letter-spacing:-0.04em;color:#fff;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Les quatre couches partagent la même géométrie : une demi-carte qui découpe
+   un chiffre dessiné à la hauteur de la carte entière. */
+.fc-moitie,.fc-rabat{
+  position:absolute;left:0;right:0;height:50%;
+  overflow:hidden;background:var(--surface);
+}
+.fc-haut,.fc-rabat-haut{top:0;border-radius:0.14em 0.14em 0 0;}
+.fc-bas,.fc-rabat-bas{bottom:0;border-radius:0 0 0.14em 0.14em;}
+
+/* Le chiffre occupe toute la hauteur de la carte dans chaque moitié, mais n'y
+   est visible qu'à moitié : c'est ce décalage qui recompose un glyphe entier
+   une fois les deux moitiés réunies. */
+.fc-txt{
+  position:absolute;left:0;right:0;height:200%;
+  display:flex;align-items:center;justify-content:center;
+  line-height:1;
+}
+.fc-haut .fc-txt,.fc-rabat-haut .fc-txt{top:0;}
+.fc-bas .fc-txt,.fc-rabat-bas .fc-txt{bottom:0;}
+
+/* Le trait de refend, signature de l'horloge à volets. De la couleur du fond,
+   pour lire comme une fente et non comme une bordure ajoutée. */
+.flip-carte::after{
+  content:'';position:absolute;left:0;right:0;top:50%;z-index:3;
+  height:max(2px,0.022em);background:var(--bg);
+  transform:translateY(-50%);pointer-events:none;
+}
+
+/* Les rabats ne se montrent que pendant la bascule. Au repos, la carte n'est
+   que ses deux moitiés fixes — sans quoi le rabat haut, revenu à 0°,
+   masquerait la moitié qu'il vient de découvrir. */
+.fc-rabat{visibility:hidden;z-index:2;backface-visibility:hidden;}
+.fc-rabat-haut{transform-origin:bottom;}
+.fc-rabat-bas{transform-origin:top;transform:rotateX(90deg);}
+
+/* Un dégradé léger sur le volet qui bouge : c'est lui qui donne l'impression
+   d'une face qui s'incline vers la lumière plutôt que d'un rectangle qui
+   pivote. Noir pur — la règle « une seule couleur » tient. */
+.fc-rabat-haut::before,.fc-rabat-bas::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+}
+.fc-rabat-haut::before{background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,0.45));}
+.fc-rabat-bas::before{background:linear-gradient(to bottom,rgba(0,0,0,0.35),rgba(0,0,0,0));}
+
+/*
+ * Durée : 340 ms au total, en deux temps égaux. Plus court, la bascule se
+ * perçoit comme un clignotement ; plus long, la seconde suivante arrive avant
+ * la fin et les animations se chevauchent.
+ */
+.flip-carte{--bascule:170ms;}
+.flip-carte.tourne .fc-rabat{visibility:visible;}
+/* Le volet qui tombe accélère (il part à l'horizontale, la gravité le prend) ;
+   celui qui arrive décélère (il vient buter contre la carte). */
+.flip-carte.tourne .fc-rabat-haut{
+  animation:volet-tombe var(--bascule) ease-in forwards;
+}
+.flip-carte.tourne .fc-rabat-bas{
+  animation:volet-arrive var(--bascule) ease-out var(--bascule) forwards;
+}
+@keyframes volet-tombe{from{transform:rotateX(0deg);}to{transform:rotateX(-90deg);}}
+@keyframes volet-arrive{from{transform:rotateX(90deg);}to{transform:rotateX(0deg);}}
+
+/* Mouvement réduit demandé par le système : la carte change de valeur sans
+   bascule. L'information reste, l'effet disparaît. */
+@media (prefers-reduced-motion:reduce){
+  .flip-carte.tourne .fc-rabat{visibility:hidden;}
+  .flip-carte.tourne .fc-rabat-haut,
+  .flip-carte.tourne .fc-rabat-bas{animation:none;}
+}

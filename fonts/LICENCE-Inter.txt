@@ -1,0 +1,13 @@
+Police « Inter » — approximation libre de la typographie d'OKX
+==============================================================
+
+Fichiers : Inter-Regular.ttf, Inter-Medium.ttf, Inter-SemiBold.ttf, Inter-Bold.ttf
+
+Auteur   : Rasmus Andersson (The Inter Project)
+Source   : https://github.com/rsms/inter (release v4.1)
+Licence  : SIL Open Font License, Version 1.1 (OFL-1.1)
+           https://github.com/rsms/inter/blob/master/LICENSE.txt
+
+Inter est libre et redistribuable sous OFL-1.1. Elle est chargée à l'exécution
+(portée privée, non installée sur le système) par app/fonts.py. La vraie police
+d'OKX (« OKX Sans ») est propriétaire ; Inter en est l'approximation la plus proche.

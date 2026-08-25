@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<!-- `viewport-fit=cover` : sur un téléphone à encoche tenu à l'horizontale,
+     l'entaille mange le bord gauche ou droit. On prend l'écran entier et on
+     rend la marge nécessaire en CSS, plutôt que de laisser deux bandes noires. -->
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+<meta name="theme-color" content="#000000"/>
+<!-- iOS ignore le manifeste pour le mode plein écran : ces deux balises sont le
+     seul moyen d'obtenir une application sans barre de navigateur une fois
+     ajoutée à l'écran d'accueil. -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Chrono</title>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<link rel="icon" type="image/png" href="icon-192.png"/>
+<link rel="stylesheet" href="flip.css?v=2"/>
+<link rel="stylesheet" href="chrono.css?v=2"/>
+</head>
+<body>
+
+<!-- Toute la page est la surface de commande : sur un appareil posé sur un
+     bureau, viser un bouton de quelques millimètres est une contrainte inutile.
+     Une tape n'importe où démarre ou met en pause. -->
+<main class="scene" id="scene">
+  <div class="flip">
+    <div class="flip-cartes" id="flip-cartes"></div>
+  </div>
+</main>
+
+<!-- Les commandes s'effacent quand le chrono tourne et qu'on n'y touche plus :
+     un chronomètre de bureau se regarde, il ne se pilote pas en permanence. -->
+<footer class="barre" id="barre">
+  <button class="cmd" id="reset" aria-label="Remettre à zéro">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  </button>
+  <button class="cmd cmd-principal" id="startpause" aria-label="Démarrer ou mettre en pause">
+    <svg viewBox="0 0 24 24" id="icone" aria-hidden="true">
+      <path id="icone-forme" d="M7 4l13 8-13 8z" fill="currentColor" stroke="none"/>
+    </svg>
+  </button>
+  <button class="cmd" id="plein-ecran" aria-label="Plein écran">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+    </svg>
+  </button>
+</footer>
+
+<!-- Signature de branding, comme en pied des autres applications NOIR. -->
+<img class="marque" src="brand.png" alt="NOIR">
+
+<script src="timer.js?v=2"></script>
+<script src="chrono.js?v=2"></script>
+</body>
+</html>

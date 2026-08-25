@@ -1,0 +1,122 @@
+/*
+ * Chrono — PWA plein écran.
+ *
+ * Cette feuille ne décrit que la page : la mise en plein écran, les commandes
+ * et leur effacement. L'horloge elle-même vient de `flip.css`, partagé avec
+ * l'application de bureau — une bascule réglée d'un côté et pas de l'autre
+ * finirait par se voir.
+ *
+ * L'usage visé est un appareil **posé sur un bureau**, à l'horizontale, qu'on
+ * regarde sans le toucher. D'où trois partis pris : l'horloge occupe tout, les
+ * commandes s'effacent, et rien ne réagit à un frôlement.
+ */
+
+:root{
+  color-scheme:dark;
+  --bg:#000000;
+  --surface:#101010;
+  --surface2:#181818;
+  --border-strong:#2e2e2e;
+  --text:#ffffff;
+  --text2:#6b6b6b;
+  --text3:#a8a8a8;
+}
+
+@font-face{font-family:'Inter';src:url('fonts/Inter-Bold.ttf') format('truetype');font-weight:700;font-display:block;}
+@font-face{font-family:'Inter';src:url('fonts/Inter-SemiBold.ttf') format('truetype');font-weight:600;font-display:block;}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+  /* Sur un appareil tactile posé sur un bureau, rien de tout cela n'a de sens
+     et tout gêne : sélectionner du texte, zoomer par pincement, ou voir un
+     halo bleu apparaître au moindre effleurement. */
+  -webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  overscroll-behavior:none;
+}
+
+/* --------------------------------------------------------------- horloge */
+/*
+ * La scène occupe l'écran entier, encoche comprise : `viewport-fit=cover` a
+ * étendu la page sous l'entaille, `env(safe-area-inset-*)` rend la marge
+ * exactement là où il le faut. Sans ces marges, un téléphone à encoche tenu à
+ * l'horizontale rognerait un chiffre.
+ */
+.scene{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:max(env(safe-area-inset-top),12px) max(env(safe-area-inset-right),16px)
+          max(env(safe-area-inset-bottom),12px) max(env(safe-area-inset-left),16px);
+  /* Déclaré conteneur de dimensionnement : les cartes se mesurent sur lui, et
+     non sur la fenêtre — c'est ce que `flip.css` attend. */
+  container-type:size;
+  cursor:pointer;
+}
+
+/* Plein écran : les cartes prennent toute la place, sans le plafond de 150 px
+   de l'application de bureau, dont la colonne est bornée à 640 px. */
+.flip-cartes{font-size:min(46cqh,26cqw,380px);}
+
+/* -------------------------------------------------------------- commandes */
+/*
+ * Elles s'effacent quand le chrono tourne et qu'on n'y touche plus : un
+ * chronomètre de bureau se regarde. Elles ne disparaissent pas complètement —
+ * une commande invisible est une commande qu'on croit perdue — mais s'estompent
+ * assez pour ne plus tirer l'œil, et reviennent au moindre contact.
+ */
+.barre{
+  position:fixed;left:0;right:0;
+  bottom:max(env(safe-area-inset-bottom),14px);
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  transition:opacity .5s ease;
+  z-index:2;
+}
+.barre.effacee{opacity:0.12;}
+
+.cmd{
+  width:clamp(46px,7vh,64px);height:clamp(46px,7vh,64px);
+  border-radius:50%;flex-shrink:0;
+  border:1px solid var(--border-strong);background:var(--surface2);
+  color:var(--text3);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:background .16s,color .16s,border-color .16s;
+}
+.cmd svg{
+  width:44%;height:44%;
+  stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.cmd:active{background:var(--border-strong);}
+
+/* Le bouton principal reprend la pilule blanche de la charte : c'est le seul
+   geste qu'on fait souvent, il doit se trouver sans être cherché. */
+.cmd-principal{
+  width:clamp(58px,9vh,80px);height:clamp(58px,9vh,80px);
+  background:#fff;border-color:#fff;color:#000;
+}
+.cmd-principal:active{background:#d9d9d9;}
+
+/* ------------------------------------------------------------- signature */
+.marque{
+  position:fixed;
+  top:max(env(safe-area-inset-top),12px);
+  right:max(env(safe-area-inset-right),16px);
+  height:13px;width:auto;opacity:.22;
+  user-select:none;-webkit-user-select:none;pointer-events:none;
+  z-index:2;
+}
+
+/* Écran très bas (téléphone à l'horizontale) : les commandes mordraient sur
+   l'horloge. On les remonte en superposition plutôt que de rétrécir l'heure,
+   qui est la seule chose qu'on vient lire. */
+@media (max-height:420px){
+  .scene{padding-bottom:max(env(safe-area-inset-bottom),8px);}
+  .barre{bottom:max(env(safe-area-inset-bottom),8px);gap:10px;}
+}
