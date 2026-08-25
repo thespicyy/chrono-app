@@ -60,8 +60,14 @@ body{
 }
 
 /* Plein écran : les cartes prennent toute la place, sans le plafond de 150 px
-   de l'application de bureau, dont la colonne est bornée à 640 px. */
-.flip-cartes{font-size:min(46cqh,26cqw,380px);}
+   de l'application de bureau, dont la colonne est bornée à 640 px.
+
+   Deux cartes au lieu de trois : la rangée mesure 3,26 em au lieu de 4,97, donc
+   à taille égale elle n'occuperait plus que les deux tiers de la largeur. Les
+   trois termes sont relevés en conséquence — c'est la hauteur qui plafonne en
+   paysage, la largeur sur un écran très allongé, et le cap en pixels sur un
+   grand écran. */
+.flip-cartes{font-size:min(50cqh,34cqw,460px);}
 
 /* -------------------------------------------------------------- commandes */
 /*

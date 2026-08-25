@@ -94,7 +94,10 @@
     return volet;
   }
 
-  var volets = [construireCarte(), construireCarte(), construireCarte()];
+  // Deux volets seulement : heures et minutes. Un chronomètre posé sur un
+  // bureau se lit d'un coup d'œil, et une carte des secondes qui bascule sans
+  // arrêt tire l'œil en permanence — c'est l'inverse de ce qu'on lui demande.
+  var volets = [construireCarte(), construireCarte()];
   volets.forEach(function (v) { el.cartes.appendChild(v.racine); });
 
   function poserVolet(volet, valeur, anime) {
@@ -106,8 +109,8 @@
     volet.couches.rabatBas.textContent = valeur;
     if (!anime) {
       // Remise à zéro, ou premier affichage au chargement : la valeur change
-      // d'un coup. Faire basculer trois cartes à la fois donnerait un effet de
-      // machine à sous, pas d'horloge.
+      // d'un coup. Faire basculer les deux cartes à la fois donnerait un effet
+      // de machine à sous, pas d'horloge.
       volet.couches.bas.textContent = valeur;
       volet.racine.classList.remove('tourne');
       return;
@@ -121,10 +124,9 @@
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
   function majVolets(ms, anime) {
-    var total = Math.floor(Math.max(0, ms) / 1000);
-    poserVolet(volets[0], pad2(Math.floor(total / 3600)), anime);
-    poserVolet(volets[1], pad2(Math.floor((total % 3600) / 60)), anime);
-    poserVolet(volets[2], pad2(total % 60), anime);
+    var minutes = Math.floor(Math.max(0, ms) / 60000);
+    poserVolet(volets[0], pad2(Math.floor(minutes / 60)), anime);
+    poserVolet(volets[1], pad2(minutes % 60), anime);
   }
 
   // ── Écran allumé ────────────────────────────────────────────────────────
@@ -248,7 +250,11 @@
   majBouton();
   reveillerBarre();
   garderEcranAllume();
-  setInterval(tick, 250);   // quatre fois par seconde : la seconde ne se rate pas
+  // Quatre fois par seconde, alors que l'affichage ne change qu'une fois par
+  // minute : c'est la **frontière** de la minute qu'il s'agit de ne pas rater.
+  // Scruter à la minute ferait dériver la bascule de plusieurs secondes, et
+  // le titre de la page, lui, porte toujours les secondes.
+  setInterval(tick, 250);
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
