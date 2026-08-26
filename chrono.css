@@ -127,6 +127,44 @@ body.durees-visibles .scene{
   background:var(--text);border-color:var(--text);color:var(--bg);
 }
 
+/* --------------------------------------------- réglage fin par les cartes */
+/*
+ * En minuteur et à l'arrêt, les deux cartes deviennent réglables : moitié
+ * haute pour ajouter, moitié basse pour retirer. Les chevrons ne sont là que
+ * dans cet état — les afficher en permanence ferait passer l'horloge pour un
+ * formulaire.
+ *
+ * Ce sont des pseudo-éléments de la carte, et non des boutons ajoutés au
+ * balisage : ils héritent ainsi de sa position et de sa taille sans qu'aucune
+ * mesure ne soit dupliquée, et suivent les cartes quand elles se
+ * redimensionnent. Ils ne captent aucun clic : c'est la carte qui écoute, et
+ * qui décide du signe selon l'endroit touché.
+ */
+body.reglable .flip-carte{cursor:ns-resize;}
+
+body.reglable .flip-carte::before,
+body.reglable .flip-carte::after{
+  content:'';
+  position:absolute;left:50%;
+  width:0.17em;height:0.17em;
+  border-top:0.045em solid var(--text2);
+  border-left:0.045em solid var(--text2);
+  pointer-events:none;
+  z-index:5;
+  transition:border-color .14s;
+}
+body.reglable .flip-carte::before{
+  top:0.12em;transform:translateX(-50%) rotate(45deg);
+}
+body.reglable .flip-carte::after{
+  bottom:0.12em;transform:translateX(-50%) rotate(-135deg);
+}
+
+/* Le chevron touché s'allume : sur un appareil tactile, c'est la seule preuve
+   que le bon côté a été atteint. */
+body.reglable .flip-carte.regle-plus::before,
+body.reglable .flip-carte.regle-moins::after{border-color:var(--text);}
+
 /* ------------------------------------------------------- fin du minuteur */
 /*
  * À zéro, l'horloge respire. Sur un appareil posé à un mètre, le son peut ne
