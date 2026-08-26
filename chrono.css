@@ -127,43 +127,48 @@ body.durees-visibles .scene{
   background:var(--text);border-color:var(--text);color:var(--bg);
 }
 
-/* --------------------------------------------- réglage fin par les cartes */
+/* ------------------------------------------------ boutons de réglage */
 /*
- * En minuteur et à l'arrêt, les deux cartes deviennent réglables : moitié
- * haute pour ajouter, moitié basse pour retirer. Les chevrons ne sont là que
- * dans cet état — les afficher en permanence ferait passer l'horloge pour un
- * formulaire.
+ * Un « +1 h » au-dessus de la carte des heures, un « −5 min » sous celle des
+ * minutes : chaque bouton dit ce qu'il fait, et se trouve contre la carte qu'il
+ * modifie. Ils n'existent qu'en minuteur et à l'arrêt.
  *
- * Ce sont des pseudo-éléments de la carte, et non des boutons ajoutés au
- * balisage : ils héritent ainsi de sa position et de sa taille sans qu'aucune
- * mesure ne soit dupliquée, et suivent les cartes quand elles se
- * redimensionnent. Ils ne captent aucun clic : c'est la carte qui écoute, et
- * qui décide du signe selon l'endroit touché.
+ * Chaque carte est glissée dans une colonne, donc l'alignement est celui du
+ * navigateur : rien n'est positionné à la main, et rien n'a à être recalculé
+ * quand les cartes changent de taille.
  */
-body.reglable .flip-carte{cursor:ns-resize;}
+.groupe{
+  display:flex;align-items:center;
+  gap:clamp(6px,1.1vh,12px);
+}
+/* Les boutons ne s'écartent que le temps du réglage : hors de cet état, ils ne
+   prennent aucune place et les cartes se rejoignent comme avant. */
+body:not(.reglable) .groupe{gap:0;}
 
-body.reglable .flip-carte::before,
-body.reglable .flip-carte::after{
-  content:'';
-  position:absolute;left:50%;
-  width:0.17em;height:0.17em;
-  border-top:0.045em solid var(--text2);
-  border-left:0.045em solid var(--text2);
-  pointer-events:none;
-  z-index:5;
-  transition:border-color .14s;
+.pas{
+  /* Hors réglage ils sont retirés de la mise en page : la largeur est en
+     excédent, mais pas au point de garder quatre boutons vides en permanence
+     de part et d'autre de l'horloge. */
+  display:none;
+  flex:0 0 auto;
+  height:clamp(26px,4vh,36px);
+  padding:0 clamp(9px,1.5vh,15px);
+  border-radius:999px;
+  border:1px solid var(--border-strong);background:var(--surface2);
+  color:var(--text3);
+  font-family:'Inter',system-ui,sans-serif;font-weight:600;
+  font-size:clamp(12px,1.9vh,15px);
+  white-space:nowrap;
+  cursor:pointer;
+  transition:opacity .16s,background .16s,color .16s;
 }
-body.reglable .flip-carte::before{
-  top:0.12em;transform:translateX(-50%) rotate(45deg);
-}
-body.reglable .flip-carte::after{
-  bottom:0.12em;transform:translateX(-50%) rotate(-135deg);
-}
+body.reglable .pas{display:block;}
+body.reglable .pas:active{background:var(--text);border-color:var(--text);color:var(--bg);}
 
-/* Le chevron touché s'allume : sur un appareil tactile, c'est la seule preuve
-   que le bon côté a été atteint. */
-body.reglable .flip-carte.regle-plus::before,
-body.reglable .flip-carte.regle-moins::after{border-color:var(--text);}
+/* Les boutons prennent de la largeur : les chiffres en rendent un peu, le temps
+   du réglage, pour que la rangée entière tienne sur un écran étroit. La hauteur,
+   elle, ne bouge pas — c'est tout l'intérêt de les avoir mis sur les côtés. */
+body.reglable .flip-cartes{font-size:min(50cqh,21cqw,460px);}
 
 /* ------------------------------------------------------- fin du minuteur */
 /*

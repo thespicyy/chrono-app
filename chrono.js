@@ -51,23 +51,20 @@
   //: horodatage de fin, même durée tirée de `focusMin`.
   var MINUTEUR = 'focus';
 
-  //: Durée voulue du minuteur, en secondes. Gardée hors des réglages du
-  //: moteur : `focusMin` y est un entier de minutes, borné à 1 au minimum.
-  var CLE_DUREE = 'chrono_pwa_duree_s';
+  //: Durées toutes prêtes, par tranches de trente minutes.
+  var DUREES = [30, 60, 90, 120, 150, 180];
 
-  var DUREE_MIN_MS = 5000;
-  //: 99 minutes : au-delà, le compteur des minutes ne tiendrait plus dans les
-  //: deux chiffres d'une carte.
-  var DUREE_MAX_MS = 99 * 60000;
+  //: Pas des boutons de réglage, en minutes. Une heure d'un côté, cinq minutes
+  //: de l'autre : c'est le découpage de l'affichage (HH:MM), et chaque bouton
+  //: agit donc sur la carte qu'il encadre.
+  var PAS_HEURE = 60;
+  var PAS_MINUTE = 5;
 
-  var PAS_MINUTE_MS = 60000;
-  //: Cinq secondes : de quoi composer 3:30 ou 0:45 sans faire tapoter
-  //: trente fois pour une demi-minute.
-  var PAS_SECONDE_MS = 5000;
-
-  //: Durées proposées, en minutes. Bornées à 60 : au-delà, l'affichage à deux
-  //: volets (MM:SS) ne saurait plus dire la différence entre 90 et 30 minutes.
-  var DUREES = [1, 3, 5, 10, 15, 20, 25, 30, 45, 60];
+  //: Bornes de la durée, en minutes. Le plafond n'est pas choisi ici : c'est
+  //: celui du réglage `focusMin` du moteur, où la durée est rangée (cf.
+  //: `dureeMinutes`). Trois heures, ce qui couvre la plus longue tranche.
+  var DUREE_MIN = 5;
+  var DUREE_MAX = T.LIMITS.focusMin.max;
 
   var stocke = lire();
   var state = T.hydrate(stocke, Date.now());
@@ -83,56 +80,49 @@
     T.selectMode(state, 'chrono');
   }
 
+  // Première ouverture : la durée par défaut du moteur est de 25 minutes, qui
+  // ne figure dans aucune des tranches proposées — l'application s'ouvrirait
+  // sur une valeur qu'elle ne sait pas offrir. On pose la première tranche.
+  // Écrit dans les réglages plutôt que par `poserDuree`, appelée trop tôt ici :
+  // l'interface n'existe pas encore.
+  if (!stocke) {
+    state.settings.focusMin = DUREES[0];
+    T.reset(state);
+  }
+
   function enMinuteur() { return state.session.mode === MINUTEUR; }
 
   // ── Durée du minuteur ───────────────────────────────────────────────────
 
   /**
-   * La durée voulue est gardée **ici**, en secondes, et non dans les réglages
-   * du moteur : `focusMin` y est un entier de minutes borné à 1 au minimum, ce
-   * qui interdirait aussi bien 45 secondes que 3 min 30. Le moteur n'a pas à
-   * s'en trouver modifié pour autant — il suffit de reposer `durationMs`, qu'il
-   * recalcule de son côté, avec la valeur voulue.
-   */
-  function dureeVoulueMs() {
-    try {
-      var brut = parseInt(localStorage.getItem(CLE_DUREE), 10);
-      if (isFinite(brut) && brut > 0) {
-        return Math.min(DUREE_MAX_MS, Math.max(DUREE_MIN_MS, brut * 1000));
-      }
-    } catch (err) {
-      logErreur('dureeVoulueMs : localStorage illisible', err);
-    }
-    // Première utilisation : la durée par défaut du moteur, 25 minutes.
-    return state.settings.focusMin * 60000;
-  }
-
-  function ecrireDuree(ms) {
-    try {
-      localStorage.setItem(CLE_DUREE, String(Math.round(ms / 1000)));
-    } catch (err) {
-      logErreur('ecrireDuree : localStorage indisponible', err);
-    }
-  }
-
-  /**
-   * Repose la durée là où le moteur la lit.
+   * La durée voulue est celle du réglage `focusMin` du moteur.
    *
-   * `durationMs` n'est pas sérialisé : le moteur le recalcule depuis les
-   * réglages à chaque relecture. Il est donc reposé ici — et **seulement lui**.
-   * Toucher aussi à `remainingMs` écraserait un décompte mis en pause avant un
-   * rechargement : c'est la valeur restante qui est stockée, pas la durée.
+   * Une première version la gardait à côté, dans `localStorage`, pour
+   * s'affranchir de ses bornes. C'était une erreur, et pas une petite : à la
+   * relecture, le moteur **plafonne le temps restant à la durée tirée de ses
+   * réglages**. Une durée de 1 h 40 rangée ailleurs revenait donc à 25 minutes
+   * après un rechargement — la valeur par défaut. Ranger la durée là où le
+   * moteur la lit fait disparaître le problème au lieu de le contourner, et
+   * ses bornes (1 à 180 minutes) couvrent exactement les tranches proposées.
    */
-  function poserDuree() {
-    if (!enMinuteur()) return;
-    state.session.durationMs = dureeVoulueMs();
+  function dureeMinutes() {
+    return state.settings.focusMin;
   }
 
-  /** Rearme l'intervalle sur la durée voulue, minuteur à l'arrêt. */
-  function rearmer() {
+  /** Pose une durée, en minutes, et rearme l'intervalle. */
+  function poserDuree(minutes) {
+    if (minutes < DUREE_MIN) minutes = DUREE_MIN;
+    if (minutes > DUREE_MAX) minutes = DUREE_MAX;
+    // On repart des réglages courants pour n'en changer qu'un : `applySettings`
+    // ramène tout objet à des réglages complets, et lui passer une seule clé
+    // ferait retomber toutes les autres sur leur valeur par défaut.
+    var reglages = {};
+    Object.keys(state.settings).forEach(function (cle) {
+      reglages[cle] = state.settings[cle];
+    });
+    reglages.focusMin = minutes;
+    T.applySettings(state, reglages);
     T.reset(state);
-    poserDuree();
-    state.session.remainingMs = state.session.durationMs;
     taire();
     ecrire();
     majDurees();
@@ -141,20 +131,15 @@
     reveillerBarre();
   }
 
-  /** Change la durée voulue. `deltaMs` peut être négatif. */
-  function ajusterDuree(deltaMs) {
+  /** Change la durée voulue. `delta` est en minutes, et peut être négatif. */
+  function ajusterDuree(delta) {
     if (!enMinuteur() || state.session.running) return;
-    var voulue = dureeVoulueMs() + deltaMs;
-    if (voulue < DUREE_MIN_MS) voulue = DUREE_MIN_MS;
-    if (voulue > DUREE_MAX_MS) voulue = DUREE_MAX_MS;
-    ecrireDuree(voulue);
-    rearmer();
+    poserDuree(dureeMinutes() + delta);
   }
 
   function choisirDuree(minutes) {
     if (!enMinuteur()) return;
-    ecrireDuree(minutes * 60000);
-    rearmer();
+    poserDuree(minutes);
   }
 
   // ── Éléments ────────────────────────────────────────────────────────────
@@ -218,7 +203,8 @@
   // bureau se lit d'un coup d'œil, et une carte des secondes qui bascule sans
   // arrêt tire l'œil en permanence — c'est l'inverse de ce qu'on lui demande.
   var volets = [construireCarte(), construireCarte()];
-  volets.forEach(function (v) { el.cartes.appendChild(v.racine); });
+  // Les cartes sont posées plus bas par `encadrer`, avec leurs boutons de
+  // réglage : les ajouter ici les mettrait deux fois dans la rangée.
 
   function poserVolet(volet, valeur, anime) {
     if (valeur === volet.valeur) return;
@@ -247,27 +233,20 @@
    * Pose les deux volets. Le découpage dépend du mode, et ce n'est pas un
    * caprice :
    *
-   *   chrono   HH:MM — on le laisse tourner une heure ou deux, et une carte
-   *                    des secondes qui bascule sans arrêt tire l'œil.
-   *   minuteur MM:SS — on le regarde finir. Les dernières secondes sont
-   *                    précisément ce qu'on vient y lire.
-   *
-   * Les arrondis diffèrent aussi, dans le même esprit que `formatElapsed` et
-   * `formatMs` du moteur : un temps écoulé se **tronque** (00:00 tant que la
-   * première seconde n'est pas passée), un décompte s'arrondit **au
-   * supérieur** (25:00 affiché à la seconde zéro, et le 00:01 n'est pas sauté).
+   * Les deux modes lisent **HH:MM**. Les durées du minuteur se comptent en
+   * demi-heures, et une carte des secondes qui bascule sans arrêt tirerait
+   * l'œil sur un appareil qu'on regarde sans le toucher.
    */
   function majVolets(ms, anime) {
-    var haut, bas;
-    if (enMinuteur()) {
-      var sec = Math.max(0, Math.ceil(ms / 1000));
-      haut = Math.floor(sec / 60);
-      bas = sec % 60;
-    } else {
-      var minutes = Math.floor(Math.max(0, ms) / 60000);
-      haut = Math.floor(minutes / 60);
-      bas = minutes % 60;
-    }
+    // Arrondi au **supérieur** pour le décompte, comme `formatMs` du moteur :
+    // la durée pleine s'affiche à l'instant du départ, et la dernière minute se
+    // lit « 00:01 » jusqu'à l'échéance. Tronquer afficherait « 00:00 » pendant
+    // toute la dernière minute — un minuteur terminé une minute avant l'heure.
+    var minutes = enMinuteur()
+      ? Math.ceil(Math.max(0, ms) / 60000)
+      : Math.floor(Math.max(0, ms) / 60000);
+    var haut = Math.floor(minutes / 60);
+    var bas = minutes % 60;
     poserVolet(volets[0], pad2(haut), anime);
     poserVolet(volets[1], pad2(bas), anime);
   }
@@ -419,13 +398,23 @@
     majDurees();
   }
 
+  /** « 30 min », « 1 h », « 1 h 30 » — comme on le dirait à voix haute. */
+  function libelleDuree(minutes) {
+    var heures = Math.floor(minutes / 60);
+    var reste = minutes % 60;
+    if (!heures) return reste + ' min';
+    return heures + ' h' + (reste ? ' ' + reste : '');
+  }
+
   function construireDurees() {
     DUREES.forEach(function (minutes) {
       var bouton = document.createElement('button');
       bouton.type = 'button';
       bouton.className = 'duree';
-      bouton.textContent = minutes;
-      bouton.setAttribute('aria-label', minutes + ' minutes');
+      bouton.textContent = libelleDuree(minutes);
+      // La valeur est portée par l'attribut, pas relue dans le libellé : « 1 h 30 »
+      // ne se relit pas en nombre de minutes.
+      bouton.setAttribute('data-minutes', String(minutes));
       bouton.addEventListener('click', function (e) {
         e.stopPropagation();
         choisirDuree(minutes);
@@ -442,14 +431,14 @@
     // La classe sert au décalage de l'horloge : la rangée est en position fixe
     // et viendrait sinon recouvrir les chiffres, qui sont centrés sur la scène.
     document.body.classList.toggle('durees-visibles', visibles);
-    // Même condition, autre usage : elle arme les chevrons des cartes.
+    // Même condition, autre usage : elle fait paraître les boutons de réglage.
     document.body.classList.toggle('reglable', visibles);
     // Une pastille n'est marquée que si la durée voulue lui correspond
     // exactement : après un réglage à 3 min 30, aucune ne doit paraître
     // choisie, sans quoi la rangée mentirait sur l'état.
-    var choisie = dureeVoulueMs() / 60000;
+    var choisie = dureeMinutes();
     Array.prototype.forEach.call(el.durees.children, function (bouton) {
-      var actif = parseInt(bouton.textContent, 10) === choisie;
+      var actif = parseInt(bouton.getAttribute('data-minutes'), 10) === choisie;
       bouton.classList.toggle('choisie', actif);
       bouton.setAttribute('aria-pressed', actif ? 'true' : 'false');
     });
@@ -485,7 +474,6 @@
   }
 
   function remettreAZero() {
-    if (enMinuteur()) { relacherEcran(); rearmer(); return; }
     taire();
     T.reset(state);
     ecrire();
@@ -500,10 +488,8 @@
   function basculerMode() {
     taire();
     T.selectMode(state, enMinuteur() ? 'chrono' : MINUTEUR);
-    // `selectMode` repose la durée du mode d'après les réglages : en minuteur,
-    // c'est la durée voulue qui fait foi, pas `focusMin`.
-    poserDuree();
-    if (enMinuteur()) state.session.remainingMs = state.session.durationMs;
+    // Rien à reposer : `selectMode` tire la durée des réglages, et c'est
+    // désormais là que vit la durée voulue.
     ecrire();
     relacherEcran();
     majMode();
@@ -522,16 +508,15 @@
     }
   }
 
-  // ── Régler la durée en touchant les cartes ──────────────────────────────
+  // ── Boutons de réglage ──────────────────────────────────────────────────
   //
-  // Les deux cartes sont les plus grandes cibles de l'écran : autant s'en
-  // servir. Moitié haute pour ajouter, moitié basse pour retirer — la carte de
-  // gauche par minute, celle de droite par pas de cinq secondes. Les durées
-  // toutes prêtes restent là pour les sauts (25 minutes en une tape) ; ceci
-  // sert au réglage fin, et rend accessible n'importe quelle durée.
+  // Un « − » à gauche de chaque carte et un « + » à droite, portant en toutes
+  // lettres ce qu'ils font : « +1 h », « +5 min ». La version précédente
+  // divisait chaque carte en deux moitiés sensibles, sans rien pour le dire —
+  // c'était illisible. Un bouton doit se voir et s'annoncer.
   //
-  // L'appui prolongé répète, en accélérant après la première seconde : sans
-  // cela, régler 45 minutes demanderait quarante-cinq tapes.
+  // L'appui prolongé répète en accélérant : passer de 30 minutes à 3 heures
+  // sans cela demanderait trente-six tapes.
 
   var PREMIER_DELAI_MS = 420;
   var REPETITION_MS = 110;
@@ -544,46 +529,61 @@
     repetition = null;
   }
 
-  function demarrerRepetition(deltaMs) {
+  function demarrerRepetition(delta) {
     arreterRepetition();
-    ajusterDuree(deltaMs);
+    ajusterDuree(delta);
     repetition = setTimeout(function () {
-      repetition = setInterval(function () { ajusterDuree(deltaMs); },
+      repetition = setInterval(function () { ajusterDuree(delta); },
                                REPETITION_MS);
     }, PREMIER_DELAI_MS);
   }
 
-  function armerCarte(carte, pasMs) {
-    carte.addEventListener('pointerdown', function (e) {
-      if (!enMinuteur() || state.session.running) return;   // la tape démarre
-      // La carte cesse d'être une simple surface de commande : sans cela, le
-      // réglage démarrerait le minuteur du même geste.
+  function creerBoutonPas(libelle, delta, description) {
+    var bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'pas';
+    bouton.textContent = libelle;
+    bouton.setAttribute('aria-label', description);
+    // Le bouton est dans la scène, dont la tape démarre le décompte : sans
+    // arrêter la propagation, chaque réglage lancerait le minuteur.
+    bouton.addEventListener('pointerdown', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      var boite = carte.getBoundingClientRect();
-      var versLeHaut = (e.clientY - boite.top) < boite.height / 2;
-      carte.classList.add(versLeHaut ? 'regle-plus' : 'regle-moins');
-      demarrerRepetition(versLeHaut ? pasMs : -pasMs);
-      try { carte.setPointerCapture(e.pointerId); } catch (err) { /* sans gravité */ }
+      demarrerRepetition(delta);
+      try { bouton.setPointerCapture(e.pointerId); } catch (err) { /* sans gravité */ }
     });
-
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (evenement) {
-      carte.addEventListener(evenement, function () {
-        arreterRepetition();
-        carte.classList.remove('regle-plus', 'regle-moins');
-      });
+      bouton.addEventListener(evenement, arreterRepetition);
     });
-
-    // Un clic qui suit un pointerdown déjà traité ne doit pas remonter jusqu'à
-    // la scène, sinon chaque réglage démarrerait le décompte.
-    carte.addEventListener('click', function (e) {
-      if (!enMinuteur() || state.session.running) return;
-      e.stopPropagation();
-    });
+    bouton.addEventListener('click', function (e) { e.stopPropagation(); });
+    return bouton;
   }
 
-  armerCarte(volets[0].racine, PAS_MINUTE_MS);
-  armerCarte(volets[1].racine, PAS_SECONDE_MS);
+  /**
+   * Encadre chaque carte de ses deux boutons.
+   *
+   * Les boutons sont **de part et d'autre** de la carte, et non au-dessus et
+   * au-dessous : la hauteur est la dimension rare ici — c'est elle qui borne la
+   * taille des chiffres — alors que la largeur est en excédent, la rangée
+   * n'occupant que les deux tiers de l'écran. Les placer verticalement forçait
+   * l'horloge à rétrécir d'un tiers pendant le réglage. Mesuré.
+   *
+   * La carte est glissée dans un groupe plutôt que flanquée d'éléments
+   * positionnés à la main : l'alignement est celui du navigateur, et rien n'a
+   * à être recalculé quand les cartes changent de taille.
+   */
+  function encadrer(volet, pas, unite) {
+    var groupe = document.createElement('div');
+    groupe.className = 'groupe';
+    var libelle = unite === 'h' ? '1 h' : '5 min';
+    groupe.appendChild(creerBoutonPas('−' + libelle, -pas, 'Retirer ' + libelle));
+    groupe.appendChild(volet.racine);
+    groupe.appendChild(creerBoutonPas('+' + libelle, pas, 'Ajouter ' + libelle));
+    el.cartes.appendChild(groupe);
+  }
+
+  encadrer(volets[0], PAS_HEURE, 'h');
+  encadrer(volets[1], PAS_MINUTE, 'min');
 
   // ── Écouteurs ───────────────────────────────────────────────────────────
   el.startPause.addEventListener('click', function (e) { e.stopPropagation(); basculer(); });
@@ -604,10 +604,10 @@
     else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); remettreAZero(); }
     else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); basculerPleinEcran(); }
     else if (e.key === 'm' || e.key === 'M') { e.preventDefault(); basculerMode(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); ajusterDuree(PAS_MINUTE_MS); }
-    else if (e.key === 'ArrowDown') { e.preventDefault(); ajusterDuree(-PAS_MINUTE_MS); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); ajusterDuree(PAS_SECONDE_MS); }
-    else if (e.key === 'ArrowLeft') { e.preventDefault(); ajusterDuree(-PAS_SECONDE_MS); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); ajusterDuree(PAS_MINUTE); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); ajusterDuree(-PAS_MINUTE); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); ajusterDuree(PAS_HEURE); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); ajusterDuree(-PAS_HEURE); }
   });
 
   document.addEventListener('visibilitychange', function () {
@@ -627,8 +627,6 @@
 
   // ── Démarrage ───────────────────────────────────────────────────────────
   construireDurees();
-  poserDuree();   // `durationMs` n'est pas sérialisé : le moteur l'a recalculé
-                  // depuis `focusMin`, il faut y remettre la durée voulue.
   majMode();
   majVolets(T.displayMs(state, Date.now()), false);   // sans bascule : c'est un état retrouvé
   majBouton();
