@@ -17,8 +17,8 @@
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 <link rel="icon" type="image/png" href="icon-192.png"/>
-<link rel="stylesheet" href="flip.css?v=3"/>
-<link rel="stylesheet" href="chrono.css?v=3"/>
+<link rel="stylesheet" href="flip.css?v=4"/>
+<link rel="stylesheet" href="chrono.css?v=4"/>
 </head>
 <body>
 
@@ -31,9 +31,20 @@
   </div>
 </main>
 
+<!-- Durées du minuteur. Des durées toutes prêtes plutôt que des boutons « + »
+     et « − » : sur un appareil posé à un mètre, régler 25 minutes une minute à
+     la fois n'est pas une interaction, c'est une corvée. Visible uniquement en
+     mode minuteur, et seulement à l'arrêt. -->
+<nav class="durees" id="durees" hidden aria-label="Durée du minuteur"></nav>
+
 <!-- Les commandes s'effacent quand le chrono tourne et qu'on n'y touche plus :
      un chronomètre de bureau se regarde, il ne se pilote pas en permanence. -->
 <footer class="barre" id="barre">
+  <button class="cmd" id="mode" aria-label="Passer du chronomètre au minuteur">
+    <svg viewBox="0 0 24 24" id="icone-mode" aria-hidden="true">
+      <path id="icone-mode-forme" d="M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/>
+    </svg>
+  </button>
   <button class="cmd" id="reset" aria-label="Remettre à zéro">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
   </button>
@@ -52,7 +63,7 @@
 <!-- Signature de branding, comme en pied des autres applications NOIR. -->
 <img class="marque" src="brand.png" alt="NOIR">
 
-<script src="timer.js?v=3"></script>
-<script src="chrono.js?v=3"></script>
+<script src="timer.js?v=4"></script>
+<script src="chrono.js?v=4"></script>
 </body>
 </html>

@@ -69,6 +69,83 @@ body{
    grand écran. */
 .flip-cartes{font-size:min(50cqh,34cqw,460px);}
 
+/* ---------------------------------------------------- durées du minuteur */
+/*
+ * Une rangée de durées toutes prêtes, sous l'horloge et au-dessus des
+ * commandes. Elle ne paraît qu'en mode minuteur et à l'arrêt : c'est la seule
+ * situation où changer la durée a un sens.
+ *
+ * Les cibles sont larges — un appareil posé sur un bureau se pilote du bout du
+ * doigt, sans viser. La rangée défile horizontalement plutôt que de passer à
+ * la ligne : sur un écran bas, une seconde ligne mangerait l'horloge.
+ */
+.durees{
+  position:fixed;left:0;right:0;
+  bottom:calc(max(env(safe-area-inset-bottom),14px) + clamp(46px,7vh,64px) + 20px);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:0 max(env(safe-area-inset-right),16px) 0 max(env(safe-area-inset-left),16px);
+  overflow-x:auto;overscroll-behavior-x:contain;
+  scrollbar-width:none;
+  z-index:2;
+}
+.durees::-webkit-scrollbar{display:none;}
+
+/* Tant que la rangée est là, elle est **réservée dans la mise en page** plutôt
+   que posée par-dessus. Une seule règle suffit alors à tout tenir : la scène
+   étant le conteneur de dimensionnement, réduire sa hauteur utile recentre
+   l'horloge ET ajuste la taille des chiffres. Un simple décalage vers le haut
+   marchait sur les grands écrans et faisait sortir l'horloge par le haut sur
+   un écran de 360 px — mesuré. La transition rend le changement continu, donc
+   lisible comme un mouvement et non comme un sursaut. */
+body.durees-visibles .scene{
+  padding-bottom:calc(max(env(safe-area-inset-bottom),12px)
+                      + clamp(34px,5vh,44px) + 34px);
+}
+.flip-cartes{transition:font-size .18s ease;}
+@media (prefers-reduced-motion:reduce){
+  .flip-cartes{transition:none;}
+}
+.durees[hidden]{display:none;}
+
+.duree{
+  flex:0 0 auto;
+  min-width:clamp(40px,6vh,54px);height:clamp(34px,5vh,44px);
+  padding:0 clamp(8px,1.4vh,14px);
+  border-radius:999px;
+  border:1px solid var(--border-strong);background:var(--surface2);
+  color:var(--text3);
+  font-family:'Inter',system-ui,sans-serif;font-weight:600;
+  font-size:clamp(13px,2.1vh,17px);
+  cursor:pointer;
+  transition:background .16s,color .16s,border-color .16s;
+}
+.duree:active{background:var(--border-strong);}
+
+/* La durée retenue est la seule chose blanche de la rangée — même règle que le
+   bouton principal : une seule pièce accentuée, et elle porte une information. */
+.duree.choisie{
+  background:var(--text);border-color:var(--text);color:var(--bg);
+}
+
+/* ------------------------------------------------------- fin du minuteur */
+/*
+ * À zéro, l'horloge respire. Sur un appareil posé à un mètre, le son peut ne
+ * pas suffire — sonnerie coupée, pièce bruyante — et la fin doit se voir
+ * depuis l'autre bout de la table. L'animation se répète sans fin : c'est un
+ * état, pas une notification qui passe. Elle s'arrête à la première tape.
+ */
+@keyframes fin-respire{
+  0%,100%{opacity:1;}
+  50%{opacity:0.28;}
+}
+body.sonne .flip-cartes{animation:fin-respire 1.1s ease-in-out infinite;}
+
+@media (prefers-reduced-motion:reduce){
+  /* Pas d'animation, mais la fin doit rester visible : l'horloge s'atténue
+     franchement plutôt que de clignoter. */
+  body.sonne .flip-cartes{animation:none;opacity:0.45;}
+}
+
 /* -------------------------------------------------------------- commandes */
 /*
  * Elles s'effacent quand le chrono tourne et qu'on n'y touche plus : un
@@ -125,4 +202,15 @@ body{
 @media (max-height:420px){
   .scene{padding-bottom:max(env(safe-area-inset-bottom),8px);}
   .barre{bottom:max(env(safe-area-inset-bottom),8px);gap:10px;}
+  .durees{
+    bottom:calc(max(env(safe-area-inset-bottom),8px) + clamp(46px,7vh,64px) + 14px);
+    gap:6px;
+  }
+  /* Cette règle écrase `padding-bottom` de `.scene` : la réservation de la
+     rangée doit donc y être reposée, sans quoi elle serait perdue sur
+     exactement les écrans où elle compte le plus. */
+  body.durees-visibles .scene{
+    padding-bottom:calc(max(env(safe-area-inset-bottom),8px)
+                        + clamp(34px,5vh,44px) + 30px);
+  }
 }
