@@ -151,6 +151,7 @@
     icone:      document.getElementById('icone-forme'),
     reset:      document.getElementById('reset'),
     pleinEcran: document.getElementById('plein-ecran'),
+    progression: document.getElementById('progression'),
     mode:       document.getElementById('mode'),
     iconeMode:  document.getElementById('icone-mode-forme'),
     durees:     document.getElementById('durees')
@@ -353,6 +354,8 @@
     T.pause(state, maintenant);
     ecrire();
     relacherEcran();
+    // Le temps est déjà passé : la question ne peut rien perturber.
+    proposerAuSuivi(maintenant, state.session.durationMs);
     document.body.classList.add('sonne');
     sonnerie();
     vibrer();
@@ -458,12 +461,30 @@
     majBouton();
   }
 
+  // ── Pont vers le suivi du temps ─────────────────────────────────────────
+  //
+  // Le suivi est un module à part, chargé avant celui-ci. S'il manquait — un
+  // fichier oublié à la construction — le chronomètre doit continuer de
+  // fonctionner : c'est un supplément, pas une dépendance.
+
+  function proposerAuSuivi(fin, dureeMs) {
+    if (!window.SuiviUI) return;
+    try {
+      var debut = debutSession || (fin - dureeMs);
+      window.SuiviUI.proposer(debut, dureeMs);
+    } catch (err) {
+      logErreur('proposerAuSuivi', err);
+    }
+    debutSession = null;
+  }
+
   // ── Actions ─────────────────────────────────────────────────────────────
   function basculer() {
     taire();
     // Le geste qui démarre est aussi celui qui ouvre le contexte audio : au
     // moment où le minuteur sonnera, plus personne ne touchera l'écran.
     reveillerAudio();
+    if (!state.session.running && !debutSession) debutSession = Date.now();
     T.toggle(state, Date.now());
     ecrire();
     majDurees();
@@ -475,6 +496,11 @@
 
   function remettreAZero() {
     taire();
+    // Avant d'effacer : c'est le seul instant où le temps écoulé est encore
+    // connu, et c'est justement ce geste qui clôt une session de travail.
+    if (!enMinuteur()) {
+      proposerAuSuivi(Date.now(), T.elapsedAt(state, Date.now()));
+    }
     T.reset(state);
     ecrire();
     relacherEcran();
@@ -521,6 +547,11 @@
   var PREMIER_DELAI_MS = 420;
   var REPETITION_MS = 110;
   var repetition = null;
+
+  //: Instant où la session en cours a commencé, pour l'horodater au journal du
+  //: suivi. `startTimestamp` du moteur ne convient pas : il est remis à chaque
+  //: reprise après une pause, et vaut `null` pour un minuteur.
+  var debutSession = null;
 
   function arreterRepetition() {
     if (repetition === null) return;
@@ -590,16 +621,29 @@
   el.reset.addEventListener('click', function (e) { e.stopPropagation(); remettreAZero(); });
   el.pleinEcran.addEventListener('click', function (e) { e.stopPropagation(); basculerPleinEcran(); });
   el.mode.addEventListener('click', function (e) { e.stopPropagation(); basculerMode(); });
+  el.progression.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (window.SuiviUI) window.SuiviUI.ouvrirProgression();
+  });
 
   // Toute la scène commande : viser un bouton de quelques millimètres sur un
   // appareil posé à un mètre n'a aucun intérêt.
-  el.scene.addEventListener('click', basculer);
+  el.scene.addEventListener('click', function () {
+    // Un panneau ouvert couvre l'écran : une tape qui le traverserait
+    // démarrerait le chronomètre dans le dos de l'utilisateur.
+    if (window.SuiviUI && window.SuiviUI.ouvert()) return;
+    basculer();
+  });
 
   ['pointerdown', 'pointermove', 'keydown'].forEach(function (evenement) {
     document.addEventListener(evenement, reveillerBarre, { passive: true });
   });
 
   document.addEventListener('keydown', function (e) {
+    if (window.SuiviUI && window.SuiviUI.ouvert()) {
+      if (e.key === 'Escape') window.SuiviUI.fermer();
+      return;
+    }
     if (e.code === 'Space') { e.preventDefault(); basculer(); }
     else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); remettreAZero(); }
     else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); basculerPleinEcran(); }

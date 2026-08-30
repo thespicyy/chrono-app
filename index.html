@@ -17,8 +17,9 @@
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 <link rel="icon" type="image/png" href="icon-192.png"/>
-<link rel="stylesheet" href="flip.css?v=6"/>
-<link rel="stylesheet" href="chrono.css?v=6"/>
+<link rel="stylesheet" href="flip.css?v=7"/>
+<link rel="stylesheet" href="chrono.css?v=7"/>
+<link rel="stylesheet" href="suivi.css?v=7"/>
 </head>
 <body>
 
@@ -53,6 +54,11 @@
       <path id="icone-forme" d="M7 4l13 8-13 8z" fill="currentColor" stroke="none"/>
     </svg>
   </button>
+  <button class="cmd" id="progression" aria-label="Voir ma progression">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
+    </svg>
+  </button>
   <button class="cmd" id="plein-ecran" aria-label="Plein écran">
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
@@ -60,10 +66,41 @@
   </button>
 </footer>
 
+<!-- Fin de session : la seule question posée, et elle ne se pose qu'une fois le
+     temps déjà écoulé. Deux tapes au total — la catégorie, puis rien. -->
+<div class="voile" id="voile-fin" hidden>
+  <div class="panneau">
+    <p class="panneau-titre">Tu viens de travailler</p>
+    <p class="panneau-duree" id="fin-duree">0 min</p>
+    <p class="panneau-question">Sur quoi ?</p>
+    <div class="choix" id="fin-choix"></div>
+    <div class="panneau-pied">
+      <button class="lien" id="fin-ignorer" type="button">Ne pas compter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Progression : totaux, niveaux, série, et la gestion des catégories. -->
+<div class="voile" id="voile-progression" hidden>
+  <div class="panneau panneau-large">
+    <div class="panneau-entete">
+      <p class="panneau-titre" id="prog-titre">Progression</p>
+      <button class="lien" id="prog-fermer" type="button">Fermer</button>
+    </div>
+    <div class="prog-corps" id="prog-corps"></div>
+    <div class="panneau-pied panneau-pied-large">
+      <button class="lien" id="prog-categories" type="button">Catégories</button>
+      <button class="lien" id="prog-synchro" type="button">Synchronisation</button>
+    </div>
+  </div>
+</div>
+
 <!-- Signature de branding, comme en pied des autres applications NOIR. -->
 <img class="marque" src="brand.png" alt="NOIR">
 
-<script src="timer.js?v=6"></script>
-<script src="chrono.js?v=6"></script>
+<script src="timer.js?v=7"></script>
+<script src="suivi.js?v=7"></script>
+<script src="suivi-ui.js?v=7"></script>
+<script src="chrono.js?v=7"></script>
 </body>
 </html>
