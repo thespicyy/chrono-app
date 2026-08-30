@@ -63,9 +63,24 @@
   var categories = lire(CLE_CATEGORIES, null);
   var cfg = lire(CLE_SYNC, null);
 
-  if (!Array.isArray(categories)) {
-    categories = CATEGORIES_INITIALES.map(function (nom) {
-      return { id: identifiant(), nom: nom, supprime: false, majA: Date.now(), sale: true };
+  if (!Array.isArray(categories)) categories = [];
+
+  /**
+   * Pose les premières catégories d'un appareil qui n'en a aucune.
+   *
+   * APPELÉE APRÈS LA PREMIÈRE SYNCHRO, JAMAIS AVANT. Amorcer au chargement
+   * paraissait naturel et produisait des doublons : deux appareils couplés
+   * créaient chacun leurs trois catégories, avec des identifiants distincts —
+   * et la fusion, qui n'a aucune raison de rapprocher deux lignes différentes,
+   * en rendait six. Un appareil couplé attend donc de savoir ce que les autres
+   * ont déjà avant de proposer quoi que ce soit.
+   */
+  function amorcer() {
+    if (categoriesVives().length) return;
+    var maintenant = Date.now();
+    CATEGORIES_INITIALES.forEach(function (nom) {
+      categories.push({ id: identifiant(), nom: nom, supprime: false,
+                        majA: maintenant, sale: true });
     });
     ecrire(CLE_CATEGORIES, categories);
   }
@@ -128,6 +143,9 @@
    */
   function proposer(debut, dureeMs) {
     if (!isFinite(dureeMs) || dureeMs < DUREE_MINIMALE_MS) return false;
+    // Une session qu'on ne saurait pas classer serait une session perdue : si
+    // la synchro n'a rien rapporté, on amorce plutôt que de ne rien proposer.
+    if (!categoriesVives().length) amorcer();
     if (!categoriesVives().length) return false;
     sessionEnAttente = { debut: debut, dureeMs: dureeMs };
     el.finDuree.textContent = S.formatDuree(dureeMs);
@@ -543,6 +561,8 @@
       ecrire(CLE_CATEGORIES, categories);
       ecrire(CLE_JOURNAL, journal);
       etatSync = 'ok';
+      // Maintenant seulement : on sait ce que les autres appareils ont déjà.
+      if (!categoriesVives().length) { amorcer(); ecrire(CLE_CATEGORIES, categories); }
       if (!el.voileProg.hidden) dessinerProgression();
     } catch (err) {
       // Une panne de synchro n'empêche jamais de compter son temps : le journal
@@ -553,6 +573,9 @@
       enCours = false;
     }
   }
+
+  // Sans couplage, rien ne viendra d'ailleurs : on amorce tout de suite.
+  if (!cfg) amorcer();
 
   if (cfg) {
     synchroniser();
