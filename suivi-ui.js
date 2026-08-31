@@ -570,12 +570,48 @@
       .map(function (v) { return Math.round(parseFloat(v) || 0); });
     document.body.removeChild(sondeur);
 
+    // Comparaison sur la plus grande dimension : en paysage, certains
+    // navigateurs échangent largeur et hauteur d'écran, d'autres non. Prendre
+    // le maximum des deux évite d'avoir à savoir lequel on a en face.
+    var vue = Math.max(window.innerWidth, window.innerHeight);
+    var ecran = window.screen
+      ? Math.max(window.screen.width, window.screen.height) : vue;
+    var manque = Math.round(ecran - vue);
+
     el.progCorps.appendChild(elem('p', 'note',
       'Affichage : ' + window.innerWidth + ' × ' + window.innerHeight +
       ' points, densité ' + (window.devicePixelRatio || 1) +
       ' · zones sûres haut/droite/bas/gauche : ' + marges.join(' / ') + ' px' +
       ' · écran ' + (window.screen ? window.screen.width + ' × ' +
                      window.screen.height : '?') + '.'));
+
+    // Le verdict, en clair. C'est lui qui dit si un décalage se corrige ici ou
+    // dans les réglages du téléphone — et les deux ne se ressemblent pas.
+    //
+    // Il n'a de sens qu'en plein écran : dans une fenêtre de navigateur, une
+    // vue plus étroite que l'écran est la situation normale, et l'annoncer
+    // comme une bande réservée serait une fausse alerte.
+    function pleinEcran() {
+      try {
+        return window.matchMedia('(display-mode: fullscreen)').matches ||
+               window.matchMedia('(display-mode: standalone)').matches ||
+               !!document.fullscreenElement;
+      } catch (err) { return false; }
+    }
+
+    el.progCorps.appendChild(elem('p', 'note',
+      !pleinEcran()
+        ? 'Fenêtre de navigateur : la vue ne couvre pas l’écran, c’est normal. ' +
+          'Ce diagnostic ne vaut que dans l’application installée, ouverte ' +
+          'depuis son icône.'
+        : manque > 4
+        ? 'Le système réserve ' + manque + ' points sur le côté : la vue est ' +
+          'plus étroite que l’écran, et l’application ne peut rien y peindre. ' +
+          'Cela se règle dans les réglages d’affichage du téléphone (affichage ' +
+          'plein écran, application par application), pas dans la page — qui ' +
+          'demande déjà le plein écran et l’extension sous l’encoche.'
+        : 'La vue occupe tout l’écran : un décalage éventuel se corrige ici, ' +
+          'avec le réglage de centrage ci-dessous.'));
 
     // ── Centrage de l'horloge ─────────────────────────────────────────
     //
