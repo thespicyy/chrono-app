@@ -51,6 +51,22 @@
   //: horodatage de fin, même durée tirée de `focusMin`.
   var MINUTEUR = 'focus';
 
+  /*
+   * Trois vues, dont une seule ne concerne pas le moteur.
+   *
+   * L'horloge n'a rien à compter : elle lit l'heure du système. Elle est donc
+   * gardée **hors** de `state.session.mode`, qui n'accepte que les modes connus
+   * du moteur — y glisser « horloge » serait silencieusement ignoré par
+   * `selectMode`, et l'application resterait sur la vue précédente sans que
+   * rien ne le signale.
+   *
+   * Conséquence voulue : un minuteur lancé continue de tourner pendant qu'on
+   * regarde l'heure, et sonne quand même. La vue décide de ce qui s'affiche,
+   * pas de ce qui s'exécute.
+   */
+  var VUES = ['chrono', 'minuteur', 'horloge'];
+  var CLE_VUE = 'chrono_pwa_vue';
+
   //: Durées toutes prêtes, par tranches de trente minutes.
   var DUREES = [30, 60, 90, 120, 150, 180];
 
@@ -80,6 +96,17 @@
     T.selectMode(state, 'chrono');
   }
 
+  var vue = null;
+  try { vue = localStorage.getItem(CLE_VUE); } catch (err) { logErreur('lire la vue', err); }
+  // Une version antérieure ne connaissait pas les vues : la déduire du mode
+  // retrouvé évite de repartir sur le chronomètre alors qu'on avait laissé un
+  // minuteur réglé.
+  if (VUES.indexOf(vue) === -1) vue = (modeStocke === MINUTEUR) ? 'minuteur' : 'chrono';
+
+  function ecrireVue() {
+    try { localStorage.setItem(CLE_VUE, vue); } catch (err) { logErreur('écrire la vue', err); }
+  }
+
   // Première ouverture : la durée par défaut du moteur est de 25 minutes, qui
   // ne figure dans aucune des tranches proposées — l'application s'ouvrirait
   // sur une valeur qu'elle ne sait pas offrir. On pose la première tranche.
@@ -90,7 +117,8 @@
     T.reset(state);
   }
 
-  function enMinuteur() { return state.session.mode === MINUTEUR; }
+  function enMinuteur() { return vue === 'minuteur'; }
+  function enHorloge() { return vue === 'horloge'; }
 
   // ── Durée du minuteur ───────────────────────────────────────────────────
 
@@ -164,6 +192,9 @@
   // courant : un bouton qui affiche ce qu'on a déjà n'apprend rien.
   var ICONE_VERS_MINUTEUR = 'M6 2h12M6 22h12M6 2c0 5 12 5 12 0M6 22c0-5 12-5 12 0';
   var ICONE_VERS_CHRONO = 'M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z';
+  //: Un cadran à aiguilles, distinct du chronomètre : celui-ci porte un
+  //: bouton-poussoir sur le dessus, celle-là n'en a pas.
+  var ICONE_VERS_HORLOGE = 'M12 8v4l2.5 1.5M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 3V1' + 'M9.5 1h5';
 
   // ── Horloge à volets ────────────────────────────────────────────────────
   //
@@ -239,15 +270,23 @@
    * l'œil sur un appareil qu'on regarde sans le toucher.
    */
   function majVolets(ms, anime) {
-    // Arrondi au **supérieur** pour le décompte, comme `formatMs` du moteur :
-    // la durée pleine s'affiche à l'instant du départ, et la dernière minute se
-    // lit « 00:01 » jusqu'à l'échéance. Tronquer afficherait « 00:00 » pendant
-    // toute la dernière minute — un minuteur terminé une minute avant l'heure.
-    var minutes = enMinuteur()
-      ? Math.ceil(Math.max(0, ms) / 60000)
-      : Math.floor(Math.max(0, ms) / 60000);
-    var haut = Math.floor(minutes / 60);
-    var bas = minutes % 60;
+    var haut, bas;
+    if (enHorloge()) {
+      // L'heure du système, pas une durée : rien à arrondir.
+      var maintenant = new Date();
+      haut = maintenant.getHours();
+      bas = maintenant.getMinutes();
+    } else {
+      // Arrondi au **supérieur** pour le décompte, comme `formatMs` du moteur :
+      // la durée pleine s'affiche à l'instant du départ, et la dernière minute
+      // se lit « 00:01 » jusqu'à l'échéance. Tronquer afficherait « 00:00 »
+      // pendant toute la dernière minute — un minuteur terminé avant l'heure.
+      var minutes = enMinuteur()
+        ? Math.ceil(Math.max(0, ms) / 60000)
+        : Math.floor(Math.max(0, ms) / 60000);
+      haut = Math.floor(minutes / 60);
+      bas = minutes % 60;
+    }
     poserVolet(volets[0], pad2(haut), anime);
     poserVolet(volets[1], pad2(bas), anime);
   }
@@ -266,7 +305,10 @@
   var verrouEcran = null;
 
   function garderEcranAllume() {
-    if (!('wakeLock' in navigator) || verrouEcran || !state.session.running) return;
+    // En horloge, l'écran reste allumé sans qu'on ait rien lancé : c'est
+    // précisément l'usage — un appareil posé qu'on regarde sans le toucher.
+    if (!('wakeLock' in navigator) || verrouEcran) return;
+    if (!state.session.running && !enHorloge()) return;
     navigator.wakeLock.request('screen').then(function (verrou) {
       verrouEcran = verrou;
       verrou.addEventListener('release', function () { verrouEcran = null; });
@@ -369,12 +411,18 @@
 
   function reveillerBarre() {
     el.barre.classList.remove('effacee');
+    document.body.classList.remove('epure');
     if (minuterieBarre) clearTimeout(minuterieBarre);
-    // Les commandes ne s'effacent que si le chrono tourne : à l'arrêt, elles
-    // sont la seule chose à faire sur cette page.
-    if (!state.session.running) return;
+    // Les commandes s'effacent quand il n'y a plus rien à décider : pendant un
+    // décompte, ou devant une horloge. À l'arrêt d'un chrono, elles sont la
+    // seule chose à faire sur cette page.
+    if (!state.session.running && !enHorloge()) return;
     minuterieBarre = setTimeout(function () {
       el.barre.classList.add('effacee');
+      // Les commandes cèdent la place : les chiffres prennent tout ce qu'elles
+      // occupaient. C'est le moment où l'appareil cesse d'être une application
+      // et redevient un cadran posé sur un bureau.
+      document.body.classList.add('epure');
     }, DELAI_EFFACEMENT_MS);
   }
 
@@ -385,19 +433,31 @@
     var maintenant = Date.now();
     // Le titre porte les secondes dans les deux modes : il sert de repli quand
     // la page tourne dans un onglet, où les volets ne se voient pas.
-    document.title = enMinuteur()
-      ? T.formatMs(T.remainingAt(state, maintenant)) + ' — Minuteur'
-      : T.formatElapsed(T.displayMs(state, maintenant)) + ' — Chrono';
+    if (enHorloge()) {
+      var h = new Date();
+      document.title = pad2(h.getHours()) + ':' + pad2(h.getMinutes()) + ' — Horloge';
+    } else {
+      document.title = enMinuteur()
+        ? T.formatMs(T.remainingAt(state, maintenant)) + ' — Minuteur'
+        : T.formatElapsed(T.displayMs(state, maintenant)) + ' — Chrono';
+    }
   }
 
+  //: Ce que chaque vue annonce, et vers quoi elle bascule.
+  var SUIVANTE = {
+    chrono:   { icone: ICONE_VERS_MINUTEUR, dit: 'Passer au minuteur' },
+    minuteur: { icone: ICONE_VERS_HORLOGE,  dit: 'Passer à l’horloge' },
+    horloge:  { icone: ICONE_VERS_CHRONO,   dit: 'Passer au chronomètre' }
+  };
+
   function majMode() {
-    var minuteur = enMinuteur();
     // L'icône montre **ce vers quoi on bascule** : un bouton qui affiche
     // l'état courant n'apprend rien à qui le regarde.
-    el.iconeMode.setAttribute('d', minuteur ? ICONE_VERS_CHRONO : ICONE_VERS_MINUTEUR);
-    el.mode.setAttribute('aria-label',
-      minuteur ? 'Passer au chronomètre' : 'Passer au minuteur');
-    document.body.classList.toggle('minuteur', minuteur);
+    var suivante = SUIVANTE[vue];
+    el.iconeMode.setAttribute('d', suivante.icone);
+    el.mode.setAttribute('aria-label', suivante.dit);
+    document.body.classList.toggle('minuteur', enMinuteur());
+    document.body.classList.toggle('horloge', enHorloge());
     majDurees();
   }
 
@@ -453,7 +513,9 @@
     // minuterie de plusieurs minutes est bridée en arrière-plan, et l'appareil
     // peut se mettre en veille entre-temps. L'horodatage de fin, lui, reste
     // vrai quoi qu'il arrive à la page.
-    if (enMinuteur() && state.session.running
+    // Sur le **mode du moteur**, pas sur la vue : un minuteur lancé doit sonner
+    // même si on regarde l'heure entre-temps.
+    if (state.session.mode === MINUTEUR && state.session.running
         && T.remainingAt(state, maintenant) <= 0) {
       terminer(maintenant);
     }
@@ -481,6 +543,9 @@
   // ── Actions ─────────────────────────────────────────────────────────────
   function basculer() {
     taire();
+    // Une horloge n'a ni départ ni pause : la tape n'y sert qu'à faire
+    // reparaître les commandes, ce dont `reveillerBarre` se charge déjà.
+    if (enHorloge()) { reveillerBarre(); return; }
     // Le geste qui démarre est aussi celui qui ouvre le contexte audio : au
     // moment où le minuteur sonnera, plus personne ne touchera l'écran.
     reveillerAudio();
@@ -496,6 +561,7 @@
 
   function remettreAZero() {
     taire();
+    if (enHorloge()) return;
     // Avant d'effacer : c'est le seul instant où le temps écoulé est encore
     // connu, et c'est justement ce geste qui clôt une session de travail.
     if (!enMinuteur()) {
@@ -513,15 +579,21 @@
 
   function basculerMode() {
     taire();
-    T.selectMode(state, enMinuteur() ? 'chrono' : MINUTEUR);
+    vue = VUES[(VUES.indexOf(vue) + 1) % VUES.length];
+    ecrireVue();
+    // L'horloge ne touche pas au moteur : ce qui tournait continue de tourner,
+    // et se retrouve tel quel au retour.
+    if (!enHorloge()) T.selectMode(state, enMinuteur() ? MINUTEUR : 'chrono');
     // Rien à reposer : `selectMode` tire la durée des réglages, et c'est
     // désormais là que vit la durée voulue.
     ecrire();
-    relacherEcran();
     majMode();
     majVolets(T.displayMs(state, Date.now()), false);
     majBouton();
     reveillerBarre();
+    // Une horloge de bureau doit rester allumée sans qu'on ait rien lancé.
+    if (enHorloge() || state.session.running) garderEcranAllume();
+    else relacherEcran();
   }
 
 
