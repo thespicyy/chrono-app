@@ -19,6 +19,17 @@
   var CLE_CATEGORIES = 'chrono_pwa_categories';
   var CLE_SYNC = 'chrono_pwa_sync';
 
+  //: Les sessions terminées dont la catégorie n'a pas encore été donnée.
+  //: PERSISTÉES, ET C'EST TOUT L'INTÉRÊT : quand la question est posée, le
+  //: chronomètre a déjà été remis à zéro et le minuteur déjà arrêté. Le temps
+  //: écoulé ne vit plus que là. Le garder en mémoire seule l'effaçait dès que
+  //: le système déchargeait la page — changer d'onglet suffisait.
+  //:
+  //: Une file plutôt qu'une seule session : deux minuteurs peuvent se terminer
+  //: sans qu'on ait répondu au premier, et le perdre serait exactement le
+  //: défaut qu'on corrige ici.
+  var CLE_ATTENTE = 'chrono_pwa_attente';
+
   var TABLE_SESSIONS = 'chrono_sessions';
   var TABLE_CATEGORIES = 'chrono_categories';
 
@@ -125,7 +136,17 @@
     progSynchro: document.getElementById('prog-synchro')
   };
 
-  var sessionEnAttente = null;
+  /** La file des sessions à classer, relue du stockage au démarrage. */
+  function fileAttente() {
+    var brut = lire(CLE_ATTENTE, []);
+    if (!Array.isArray(brut)) return [];
+    return brut.filter(function (s) {
+      return s && isFinite(s.debut) && isFinite(s.dureeMs) &&
+             s.dureeMs >= DUREE_MINIMALE_MS;
+    });
+  }
+
+  var attente = fileAttente();
   var vueProgression = 'progression';   // 'progression' | 'categories' | 'synchro'
 
   function ouvert() {
@@ -147,11 +168,29 @@
     // la synchro n'a rien rapporté, on amorce plutôt que de ne rien proposer.
     if (!categoriesVives().length) amorcer();
     if (!categoriesVives().length) return false;
-    sessionEnAttente = { debut: debut, dureeMs: dureeMs };
-    el.finDuree.textContent = S.formatDuree(dureeMs);
+    // Écrit AVANT d'afficher : si la page disparaît entre les deux, la session
+    // est déjà à l'abri.
+    attente.push({ debut: debut, dureeMs: dureeMs });
+    ecrire(CLE_ATTENTE, attente);
+    montrerAttente();
+    return true;
+  }
+
+  /** Pose la question pour la première session de la file, s'il y en a une. */
+  function montrerAttente() {
+    if (!attente.length) { el.voileFin.hidden = true; return false; }
+    if (!categoriesVives().length) amorcer();
+    if (!categoriesVives().length) return false;
+    el.finDuree.textContent = S.formatDuree(attente[0].dureeMs);
     dessinerChoix();
     el.voileFin.hidden = false;
     return true;
+  }
+
+  /** Retire la session en tête, qu'elle ait été comptée ou écartée. */
+  function defilerAttente() {
+    attente.shift();
+    ecrire(CLE_ATTENTE, attente);
   }
 
   function dessinerChoix() {
@@ -190,25 +229,33 @@
   }
 
   function compter(categorie) {
-    if (!sessionEnAttente) return;
-    var entree = S.creer(identifiant(), sessionEnAttente.debut,
-                         sessionEnAttente.dureeMs, categorie.id);
+    if (!attente.length) return;
+    var session = attente[0];
+    var entree = S.creer(identifiant(), session.debut, session.dureeMs, categorie.id);
     if (entree) {
       entree.sale = true;
       journal.push(entree);
       ecrire(CLE_JOURNAL, journal);
       synchroniser();
     }
-    fermerFin();
+    defilerAttente();
+    // Une autre session peut attendre derrière : on enchaîne plutôt que de
+    // renvoyer l'utilisateur vers un écran qui ne dit rien de ce qui reste.
+    if (montrerAttente()) return;
     ouvrirProgression();
   }
 
+  /** Ferme la question sans rien décider. La session reste dans la file. */
   function fermerFin() {
-    sessionEnAttente = null;
     el.voileFin.hidden = true;
   }
 
-  el.finIgnorer.addEventListener('click', fermerFin);
+  // « Ne pas compter » est le seul geste qui jette une session : la fermeture
+  // ne fait que remettre la question à plus tard.
+  el.finIgnorer.addEventListener('click', function () {
+    defilerAttente();
+    if (!montrerAttente()) el.voileFin.hidden = true;
+  });
 
   // ── Progression ─────────────────────────────────────────────────────────
 
@@ -640,6 +687,11 @@
     });
   }
 
+  // Une session laissée en attente reprend la parole au chargement suivant :
+  // c'est la seule façon qu'elle ne se perde pas quand le système décharge la
+  // page avant qu'on ait répondu.
+  if (attente.length) montrerAttente();
+
   // ── Interface publique ──────────────────────────────────────────────────
   function ouvrirSynchro() {
     vueProgression = 'synchro';
@@ -656,6 +708,7 @@
     // Exposés pour les tests, qui doivent pouvoir observer sans passer par le
     // stockage : lire `localStorage` ne dirait rien de ce qui est affiché.
     _journal: function () { return journal; },
+    _attente: function () { return attente; },
     _categories: function () { return categories; }
   };
 })();
