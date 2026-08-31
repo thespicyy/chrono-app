@@ -271,8 +271,9 @@
     var general = elem('div', 'general');
     general.appendChild(blason(agr.global.niveau, 'grand'));
     var cote = elem('div', 'general-cote');
-    cote.appendChild(elem('div', 'general-temps', S.formatDuree(agr.total)));
-    cote.appendChild(elem('div', 'general-nom', 'au total'));
+    cote.appendChild(elem('div', 'general-rang', 'Niveau ' + agr.global.niveau));
+    cote.appendChild(elem('div', 'general-nom',
+                          S.formatDuree(agr.total) + ' au total'));
     cote.appendChild(jauge(agr.global.fraction));
     cote.appendChild(elem('div', 'general-reste',
       S.formatDuree(agr.global.minutesPourSuivant * S.MS_MINUTE) +
@@ -309,8 +310,9 @@
       corps.appendChild(tete);
       corps.appendChild(jauge(c.niveau.fraction));
       corps.appendChild(elem('div', 'ligne-pied',
+        'Niveau ' + c.niveau.niveau + ' · ' +
         S.formatDuree(c.niveau.minutesPourSuivant * S.MS_MINUTE) +
-        ' avant le niveau ' + (c.niveau.niveau + 1)));
+        ' avant le ' + (c.niveau.niveau + 1)));
       ligne.appendChild(corps);
       lignes.appendChild(ligne);
     });
@@ -323,20 +325,20 @@
   var BLASONS = 10;
 
   /**
-   * Le blason d'un niveau, le nombre en son centre.
+   * Le blason d'un niveau.
    *
-   * Les images sont cadrées pour que le disque central soit le centre exact du
-   * fichier (cf. `tools/make_badges.py`) : un simple centrage tombe donc juste
-   * pour les dix, sans décalage à réviser blason par blason.
+   * Il ne porte aucun chiffre : le dessin parle de lui-même, et le niveau est
+   * écrit à côté. Le nombre a d'abord été posé au centre, ce qui obligeait à
+   * effacer l'emblème du disque — on rendait le blason moins beau pour y loger
+   * une information qui tenait très bien ailleurs.
    */
   function blason(niveau, taille) {
     var boite = elem('div', 'blason' + (taille ? ' blason-' + taille : ''));
     var image = document.createElement('img');
     var rang = Math.max(1, Math.min(BLASONS, niveau));
     image.src = 'badges/badge-' + (rang < 10 ? '0' : '') + rang + '.png';
-    image.alt = '';
+    image.alt = 'Niveau ' + niveau;
     boite.appendChild(image);
-    boite.appendChild(elem('span', 'blason-niveau', String(niveau)));
     return boite;
   }
 

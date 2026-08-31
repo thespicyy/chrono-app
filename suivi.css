@@ -140,13 +140,11 @@
 
 /* ------------------------------------------------------------- blasons */
 /*
- * Le niveau s'écrit au centre d'un blason qui grandit avec lui. Les images
- * sont cadrées sur leur disque central (cf. `tools/make_badges.py`) : le
- * nombre se centre donc sur l'image, sans décalage particulier à chacune.
- *
- * Le nombre n'est pas gravé dans l'image, il est écrit par-dessus — c'est ce
- * qui permet d'afficher un niveau 12 avec le blason 10, et de garder la fonte
- * de l'application.
+ * Un blason par niveau, qui gagne en présence à mesure qu'on monte. Il ne
+ * porte aucun chiffre : le niveau est écrit à côté. Les images sont cadrées
+ * sur leur disque central (cf. `tools/make_badges.py`), si bien que dans une
+ * liste les blasons s'alignent sur ce disque et non sur le bord de leur halo,
+ * dont l'étendue varie.
  */
 .blason{
   position:relative;flex:0 0 auto;
@@ -159,21 +157,14 @@
   object-fit:contain;
   user-select:none;-webkit-user-select:none;pointer-events:none;
 }
-.blason-niveau{
-  position:relative;
-  color:var(--text);font-weight:700;
-  font-size:clamp(17px,2.6vh,23px);letter-spacing:-0.02em;
-  line-height:1;
-}
 .blason-grand{width:clamp(104px,17vh,150px);height:clamp(104px,17vh,150px);}
-.blason-grand .blason-niveau{font-size:clamp(30px,5vh,44px);}
 
 /* Le niveau général : le blason en grand, le reste à côté. */
 .general{
   display:flex;align-items:center;gap:clamp(12px,2.2vh,22px);
 }
 .general-cote{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px;}
-.general-temps{
+.general-rang{
   color:var(--text);font-weight:700;
   font-size:clamp(24px,4.2vh,38px);letter-spacing:-0.02em;line-height:1;
 }
