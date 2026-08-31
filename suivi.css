@@ -269,6 +269,23 @@
 }
 .retirer:active{color:var(--text);}
 
+/* Le réglage de centrage : un libellé, deux flèches, la valeur, un retour au
+   centre. Sur une seule ligne, parce qu'on le règle en regardant l'horloge
+   derrière — pas en lisant un formulaire. */
+.centrage{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+}
+.centrage-nom{
+  flex:1 1 auto;min-width:0;
+  color:var(--text3);font-weight:600;font-size:clamp(13px,2vh,15px);
+}
+.centrage-valeur{
+  flex:0 0 auto;min-width:62px;text-align:center;
+  color:var(--text);font-weight:700;font-size:clamp(13px,2vh,15px);
+  font-variant-numeric:tabular-nums;
+}
+.centrage .bouton{padding:0 clamp(12px,2vh,18px);}
+
 .note{
   color:var(--text2);font-weight:500;
   font-size:clamp(11px,1.7vh,13px);line-height:1.5;

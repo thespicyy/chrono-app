@@ -64,6 +64,32 @@
    * regarde l'heure, et sonne quand même. La vue décide de ce qui s'affiche,
    * pas de ce qui s'exécute.
    */
+  /*
+   * Décalage horizontal de l'horloge, en pixels.
+   *
+   * Réglable, et c'est délibéré. Un affichage décentré peut venir de la vue
+   * qui s'étend sous l'encoche avec des marges inégales, ou du système qui
+   * décale la vue elle-même : les deux causes demandent des corrections de
+   * sens opposé, et rien depuis un poste de développement ne permet de dire
+   * laquelle est à l'œuvre sur un appareil donné. Deux boutons règlent la
+   * question en quelques secondes, quelle que soit la cause.
+   */
+  var CLE_DECALAGE = 'chrono_pwa_decalage';
+
+  function decalage() {
+    try {
+      var v = parseInt(localStorage.getItem(CLE_DECALAGE), 10);
+      return isFinite(v) ? Math.max(-120, Math.min(120, v)) : 0;
+    } catch (err) {
+      logErreur('lire le décalage', err);
+      return 0;
+    }
+  }
+
+  function appliquerDecalage() {
+    document.documentElement.style.setProperty('--decalage', decalage() + 'px');
+  }
+
   var VUES = ['chrono', 'minuteur', 'horloge'];
   var CLE_VUE = 'chrono_pwa_vue';
 
@@ -748,6 +774,7 @@
   window.addEventListener('beforeunload', ecrire);
 
   // ── Démarrage ───────────────────────────────────────────────────────────
+  appliquerDecalage();
   construireDurees();
   majMode();
   majVolets(T.displayMs(state, Date.now()), false);   // sans bascule : c'est un état retrouvé
@@ -759,6 +786,9 @@
   // Scruter à la minute ferait dériver la bascule de plusieurs secondes, et
   // le titre de la page, lui, porte toujours les secondes.
   setInterval(tick, 250);
+
+  // Le panneau de réglage repose le décalage sans recharger la page.
+  window.ChronoAffichage = { appliquerDecalage: appliquerDecalage };
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

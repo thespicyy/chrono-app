@@ -576,7 +576,59 @@
       ' · zones sûres haut/droite/bas/gauche : ' + marges.join(' / ') + ' px' +
       ' · écran ' + (window.screen ? window.screen.width + ' × ' +
                      window.screen.height : '?') + '.'));
-  }
+
+    // ── Centrage de l'horloge ─────────────────────────────────────────
+    //
+    // Deux boutons plutôt qu'une valeur devinée. Un affichage décentré vient
+    // soit d'une vue étendue sous l'encoche avec des marges inégales, soit
+    // d'une vue que le système décale — et les deux appellent des corrections
+    // de sens opposé. Ce qui se règle à l’œil en trois tapes n’a pas à être
+    // deviné depuis un poste qui n’a ni encoche ni téléphone.
+    var PAS_DECALAGE = 4;
+
+    function lireDecalage() {
+      var v = parseInt(localStorage.getItem('chrono_pwa_decalage'), 10);
+      return isFinite(v) ? v : 0;
+    }
+
+    var reglage = elem('div', 'centrage');
+    var valeur = elem('span', 'centrage-valeur');
+
+    function poserDecalage(px) {
+      var borne = Math.max(-120, Math.min(120, px));
+      try { localStorage.setItem('chrono_pwa_decalage', String(borne)); }
+      catch (err) { logErreur('écrire le décalage', err); }
+      if (window.ChronoAffichage) window.ChronoAffichage.appliquerDecalage();
+      valeur.textContent = (borne > 0 ? '+' : '') + borne + ' px';
+    }
+
+    var versGauche = elem('button', 'bouton bouton-discret', '←');
+    versGauche.setAttribute('aria-label', 'Décaler l’horloge vers la gauche');
+    versGauche.addEventListener('click', function () {
+      poserDecalage(lireDecalage() - PAS_DECALAGE);
+    });
+
+    var versDroite = elem('button', 'bouton bouton-discret', '→');
+    versDroite.setAttribute('aria-label', 'Décaler l’horloge vers la droite');
+    versDroite.addEventListener('click', function () {
+      poserDecalage(lireDecalage() + PAS_DECALAGE);
+    });
+
+    var centrer = elem('button', 'bouton bouton-discret', 'Centrer');
+    centrer.addEventListener('click', function () { poserDecalage(0); });
+
+    reglage.appendChild(elem('span', 'centrage-nom', 'Centrage de l’horloge'));
+    reglage.appendChild(versGauche);
+    reglage.appendChild(valeur);
+    reglage.appendChild(versDroite);
+    reglage.appendChild(centrer);
+    el.progCorps.appendChild(reglage);
+    valeur.textContent = (lireDecalage() > 0 ? '+' : '') + lireDecalage() + ' px';
+
+    el.progCorps.appendChild(elem('p', 'note',
+      '← rapproche l’horloge du bord gauche, → l’en éloigne — donc → laisse ' +
+      'plus de vide à gauche. Le réglage est propre à cet appareil : il corrige ' +
+      'ce que son écran fait, pas ce que l’application calcule.'));  }
 
   function entetes() {
     return {

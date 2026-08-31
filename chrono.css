@@ -121,6 +121,11 @@ body.durees-visibles .scene{
   padding-bottom:calc(max(env(safe-area-inset-bottom),12px)
                       + clamp(34px,5vh,44px) + 34px);
 }
+/* Décalage horizontal réglable, posé par le JS d'après le stockage. Il porte
+   sur l'horloge seule : les commandes sont ancrées aux coins, elles n'ont pas
+   à suivre. */
+.flip{transform:translateX(var(--decalage,0px));transition:transform .18s ease;}
+
 .flip-cartes{transition:font-size .5s ease;}
 @media (prefers-reduced-motion:reduce){
   .flip-cartes{transition:none;}
