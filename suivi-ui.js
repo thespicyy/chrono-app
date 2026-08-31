@@ -266,16 +266,19 @@
     });
     el.progCorps.appendChild(totaux);
 
-    // Niveau général.
-    var rang = elem('div', 'rang-global');
-    var gauche = elem('span');
-    gauche.appendChild(document.createTextNode('Niveau '));
-    gauche.appendChild(elem('b', null, String(agr.global.niveau)));
-    rang.appendChild(gauche);
-    rang.appendChild(elem('span', null,
-      S.formatDuree(agr.global.minutesPourSuivant * S.MS_MINUTE) + ' avant le suivant'));
-    el.progCorps.appendChild(rang);
-    el.progCorps.appendChild(jauge(agr.global.fraction));
+    // Niveau général : le blason en grand, c'est la récompense qu'on vient
+    // regarder. Le reste l'accompagne, il ne le remplace pas.
+    var general = elem('div', 'general');
+    general.appendChild(blason(agr.global.niveau, 'grand'));
+    var cote = elem('div', 'general-cote');
+    cote.appendChild(elem('div', 'general-temps', S.formatDuree(agr.total)));
+    cote.appendChild(elem('div', 'general-nom', 'au total'));
+    cote.appendChild(jauge(agr.global.fraction));
+    cote.appendChild(elem('div', 'general-reste',
+      S.formatDuree(agr.global.minutesPourSuivant * S.MS_MINUTE) +
+      ' avant le niveau ' + (agr.global.niveau + 1)));
+    general.appendChild(cote);
+    el.progCorps.appendChild(general);
 
     // Sept derniers jours.
     var maxi = agr.jours.reduce(function (m, j) { return Math.max(m, j.ms); }, 0);
@@ -297,21 +300,44 @@
     // Par catégorie.
     var lignes = elem('div', 'lignes');
     agr.categories.forEach(function (c) {
-      var ligne = elem('div', 'ligne');
+      var ligne = elem('div', 'ligne ligne-blason');
+      ligne.appendChild(blason(c.niveau.niveau));
+      var corps = elem('div', 'ligne-corps');
       var tete = elem('div', 'ligne-tete');
       tete.appendChild(elem('span', 'ligne-nom', c.categorie));
       tete.appendChild(elem('span', 'ligne-temps', S.formatDuree(c.ms)));
-      ligne.appendChild(tete);
-      ligne.appendChild(jauge(c.niveau.fraction));
-      var pied = elem('div', 'ligne-pied');
-      pied.appendChild(elem('span', null, 'Niveau ' + c.niveau.niveau));
-      pied.appendChild(elem('span', null,
-        S.formatDuree(c.niveau.minutesPourSuivant * S.MS_MINUTE) + ' avant le ' +
-        (c.niveau.niveau + 1)));
-      ligne.appendChild(pied);
+      corps.appendChild(tete);
+      corps.appendChild(jauge(c.niveau.fraction));
+      corps.appendChild(elem('div', 'ligne-pied',
+        S.formatDuree(c.niveau.minutesPourSuivant * S.MS_MINUTE) +
+        ' avant le niveau ' + (c.niveau.niveau + 1)));
+      ligne.appendChild(corps);
       lignes.appendChild(ligne);
     });
     el.progCorps.appendChild(lignes);
+  }
+
+  //: Il existe dix blasons ; au-delà, le dernier sert de plafond. Le nombre
+  //: écrit au centre reste le vrai niveau : c'est le blason qui plafonne, pas
+  //: la progression.
+  var BLASONS = 10;
+
+  /**
+   * Le blason d'un niveau, le nombre en son centre.
+   *
+   * Les images sont cadrées pour que le disque central soit le centre exact du
+   * fichier (cf. `tools/make_badges.py`) : un simple centrage tombe donc juste
+   * pour les dix, sans décalage à réviser blason par blason.
+   */
+  function blason(niveau, taille) {
+    var boite = elem('div', 'blason' + (taille ? ' blason-' + taille : ''));
+    var image = document.createElement('img');
+    var rang = Math.max(1, Math.min(BLASONS, niveau));
+    image.src = 'badges/badge-' + (rang < 10 ? '0' : '') + rang + '.png';
+    image.alt = '';
+    boite.appendChild(image);
+    boite.appendChild(elem('span', 'blason-niveau', String(niveau)));
+    return boite;
   }
 
   function jauge(fraction) {
@@ -586,9 +612,16 @@
   }
 
   // ── Interface publique ──────────────────────────────────────────────────
+  function ouvrirSynchro() {
+    vueProgression = 'synchro';
+    dessinerProgression();
+    el.voileProg.hidden = false;
+  }
+
   window.SuiviUI = {
     proposer: proposer,
     ouvrirProgression: ouvrirProgression,
+    ouvrirSynchro: ouvrirSynchro,
     fermer: function () { fermerFin(); fermerProgression(); },
     ouvert: ouvert,
     // Exposés pour les tests, qui doivent pouvoir observer sans passer par le

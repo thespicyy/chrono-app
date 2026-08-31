@@ -219,7 +219,38 @@ body.sonne .flip-cartes{animation:fin-respire 1.1s ease-in-out infinite;}
   transition:opacity .5s ease;
   z-index:2;
 }
-.barre.effacee{opacity:0.12;}
+/* Effacement **total**, et plus rien ne reçoit les taps : un bouton invisible
+   qu'on peut presser par mégarde est pire qu'un bouton absent. C'est la
+   première tape qui les rappelle, sans rien déclencher d'autre — la scène s'en
+   charge, elle sait qu'elle est dans cet état. */
+.barre.effacee{opacity:0;pointer-events:none;}
+body.epure .coin{opacity:0;pointer-events:none;}
+
+/* Les trois coins. Position fixe, une fonction chacun : sur un appareil posé,
+   on les atteint au pouce sans quitter les chiffres des yeux. */
+.coin{
+  position:fixed;z-index:3;
+  width:clamp(42px,6.4vh,58px);height:clamp(42px,6.4vh,58px);
+  border-radius:50%;
+  border:1px solid var(--border-strong);background:var(--surface2);
+  color:var(--text3);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:opacity .5s ease,background .16s,color .16s;
+}
+.coin svg{
+  width:44%;height:44%;
+  stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.coin:active{background:var(--border-strong);}
+
+.coin-bg{left:max(env(safe-area-inset-left),16px);
+         bottom:max(env(safe-area-inset-bottom),14px);}
+.coin-bd{right:max(env(safe-area-inset-right),16px);
+         bottom:max(env(safe-area-inset-bottom),14px);}
+.coin-hd{right:max(env(safe-area-inset-right),16px);
+         top:max(env(safe-area-inset-top),14px);}
 
 .cmd{
   width:clamp(46px,7vh,64px);height:clamp(46px,7vh,64px);

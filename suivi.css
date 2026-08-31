@@ -111,13 +111,52 @@
   margin-top:3px;
 }
 
-.rang-global{
-  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
-  color:var(--text3);font-weight:600;
-  font-size:clamp(13px,2vh,16px);
+/* ------------------------------------------------------------- blasons */
+/*
+ * Le niveau s'écrit au centre d'un blason qui grandit avec lui. Les images
+ * sont cadrées sur leur disque central (cf. `tools/make_badges.py`) : le
+ * nombre se centre donc sur l'image, sans décalage particulier à chacune.
+ *
+ * Le nombre n'est pas gravé dans l'image, il est écrit par-dessus — c'est ce
+ * qui permet d'afficher un niveau 12 avec le blason 10, et de garder la fonte
+ * de l'application.
+ */
+.blason{
+  position:relative;flex:0 0 auto;
+  width:clamp(58px,9vh,78px);height:clamp(58px,9vh,78px);
+  display:flex;align-items:center;justify-content:center;
 }
-.rang-global b{color:var(--text);font-size:1.15em;}
+.blason img{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:contain;
+  user-select:none;-webkit-user-select:none;pointer-events:none;
+}
+.blason-niveau{
+  position:relative;
+  color:var(--text);font-weight:700;
+  font-size:clamp(17px,2.6vh,23px);letter-spacing:-0.02em;
+  line-height:1;
+}
+.blason-grand{width:clamp(104px,17vh,150px);height:clamp(104px,17vh,150px);}
+.blason-grand .blason-niveau{font-size:clamp(30px,5vh,44px);}
 
+/* Le niveau général : le blason en grand, le reste à côté. */
+.general{
+  display:flex;align-items:center;gap:clamp(12px,2.2vh,22px);
+}
+.general-cote{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px;}
+.general-temps{
+  color:var(--text);font-weight:700;
+  font-size:clamp(24px,4.2vh,38px);letter-spacing:-0.02em;line-height:1;
+}
+.general-nom{
+  color:var(--text2);font-weight:600;
+  font-size:clamp(11px,1.6vh,13px);
+  letter-spacing:0.06em;text-transform:uppercase;
+  margin-bottom:3px;
+}
+.general-reste{color:var(--text2);font-weight:600;font-size:clamp(11px,1.7vh,13px);}
 /* La jauge dit ce qu'il reste avant le niveau suivant. Un nombre seul ne se
    compare à rien ; une barre se lit d'un coup d'œil. */
 .jauge{
@@ -141,9 +180,12 @@
 .ligne-nom{color:var(--text);font-weight:600;font-size:clamp(14px,2.1vh,17px);}
 .ligne-temps{color:var(--text3);font-weight:600;font-size:clamp(13px,1.9vh,16px);}
 .ligne-pied{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
   color:var(--text2);font-weight:600;font-size:clamp(11px,1.6vh,13px);
 }
+
+/* Une ligne de catégorie porte son blason à gauche, le reste à droite. */
+.ligne-blason{flex-direction:row;align-items:center;gap:clamp(9px,1.6vh,15px);}
+.ligne-corps{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px;}
 
 /* Sept colonnes, une par jour. Le graphique le plus simple qui montre une
    régularité — ou son absence, ce qui est justement l'information utile. */

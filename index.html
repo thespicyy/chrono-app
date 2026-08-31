@@ -17,9 +17,9 @@
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 <link rel="icon" type="image/png" href="icon-192.png"/>
-<link rel="stylesheet" href="flip.css?v=9"/>
-<link rel="stylesheet" href="chrono.css?v=9"/>
-<link rel="stylesheet" href="suivi.css?v=9"/>
+<link rel="stylesheet" href="flip.css?v=10"/>
+<link rel="stylesheet" href="chrono.css?v=10"/>
+<link rel="stylesheet" href="suivi.css?v=10"/>
 </head>
 <body>
 
@@ -40,12 +40,12 @@
 
 <!-- Les commandes s'effacent quand le chrono tourne et qu'on n'y touche plus :
      un chronomètre de bureau se regarde, il ne se pilote pas en permanence. -->
+<!-- Les commandes s'effacent quand il n'y a plus rien à décider — pendant un
+     décompte, ou devant l'horloge. Elles disparaissent alors **complètement**,
+     et cessent de recevoir les taps : un bouton invisible qu'on peut presser
+     par mégarde est pire qu'un bouton absent. La première tape les rappelle,
+     sans rien déclencher d'autre. -->
 <footer class="barre" id="barre">
-  <button class="cmd" id="mode" aria-label="Passer du chronomètre au minuteur">
-    <svg viewBox="0 0 24 24" id="icone-mode" aria-hidden="true">
-      <path id="icone-mode-forme" d="M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/>
-    </svg>
-  </button>
   <button class="cmd" id="reset" aria-label="Remettre à zéro">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
   </button>
@@ -54,17 +54,31 @@
       <path id="icone-forme" d="M7 4l13 8-13 8z" fill="currentColor" stroke="none"/>
     </svg>
   </button>
-  <button class="cmd" id="progression" aria-label="Voir ma progression">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
-    </svg>
-  </button>
-  <button class="cmd" id="plein-ecran" aria-label="Plein écran">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
-    </svg>
-  </button>
 </footer>
+
+<!-- Les trois coins. Chacun porte une seule fonction, toujours au même endroit :
+     on les atteint au pouce sans regarder, ce qui est le but sur un appareil
+     posé. Le bouton « plein écran » a disparu — l'application installée s'ouvre
+     déjà ainsi, il ne servait qu'à annuler ce qu'elle fait toute seule. Le
+     raccourci clavier F reste, pour l'usage au navigateur. -->
+<button class="coin coin-bg" id="mode" aria-label="Changer de mode">
+  <svg viewBox="0 0 24 24" id="icone-mode" aria-hidden="true">
+    <path id="icone-mode-forme" d="M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/>
+  </svg>
+</button>
+
+<button class="coin coin-bd" id="synchro" aria-label="Synchronisation">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M20 12a8 8 0 0 1-13.7 5.7M4 12a8 8 0 0 1 13.7-5.7"/>
+    <path d="M17.7 2.7v3.6h-3.6M6.3 21.3v-3.6h3.6"/>
+  </svg>
+</button>
+
+<button class="coin coin-hd" id="progression" aria-label="Voir mes statistiques">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
+  </svg>
+</button>
 
 <!-- Fin de session : la seule question posée, et elle ne se pose qu'une fois le
      temps déjà écoulé. Deux tapes au total — la catégorie, puis rien. -->
@@ -98,9 +112,9 @@
 <!-- Signature de branding, comme en pied des autres applications NOIR. -->
 <img class="marque" src="brand.png" alt="NOIR">
 
-<script src="timer.js?v=9"></script>
-<script src="suivi.js?v=9"></script>
-<script src="suivi-ui.js?v=9"></script>
-<script src="chrono.js?v=9"></script>
+<script src="timer.js?v=10"></script>
+<script src="suivi.js?v=10"></script>
+<script src="suivi-ui.js?v=10"></script>
+<script src="chrono.js?v=10"></script>
 </body>
 </html>

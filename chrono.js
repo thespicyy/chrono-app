@@ -178,7 +178,7 @@
     startPause: document.getElementById('startpause'),
     icone:      document.getElementById('icone-forme'),
     reset:      document.getElementById('reset'),
-    pleinEcran: document.getElementById('plein-ecran'),
+    synchro: document.getElementById('synchro'),
     progression: document.getElementById('progression'),
     mode:       document.getElementById('mode'),
     iconeMode:  document.getElementById('icone-mode-forme'),
@@ -691,7 +691,10 @@
   // ── Écouteurs ───────────────────────────────────────────────────────────
   el.startPause.addEventListener('click', function (e) { e.stopPropagation(); basculer(); });
   el.reset.addEventListener('click', function (e) { e.stopPropagation(); remettreAZero(); });
-  el.pleinEcran.addEventListener('click', function (e) { e.stopPropagation(); basculerPleinEcran(); });
+  el.synchro.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (window.SuiviUI) window.SuiviUI.ouvrirSynchro();
+  });
   el.mode.addEventListener('click', function (e) { e.stopPropagation(); basculerMode(); });
   el.progression.addEventListener('click', function (e) {
     e.stopPropagation();
@@ -704,6 +707,9 @@
     // Un panneau ouvert couvre l'écran : une tape qui le traverserait
     // démarrerait le chronomètre dans le dos de l'utilisateur.
     if (window.SuiviUI && window.SuiviUI.ouvert()) return;
+    // Les commandes effacées : cette tape-là ne fait que les rappeler. Sans
+    // cela, vouloir simplement revoir les boutons mettrait le chrono en pause.
+    if (document.body.classList.contains('epure')) { reveillerBarre(); return; }
     basculer();
   });
 

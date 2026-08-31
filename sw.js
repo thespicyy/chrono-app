@@ -8,24 +8,42 @@
  *
  * Le numéro de version est injecté par tools/build_pwa.py.
  */
-const VERSION = '9';
+const VERSION = '10';
 const CACHE = 'chrono-v' + VERSION;
 
+// La liste est **produite par la construction** (`tools/build_pwa.py`), qui
+// sait exactement ce qu'elle a copié. Tenue à la main, elle prenait du retard
+// en silence : trois fichiers du suivi y manquaient, et une installation faite
+// puis coupée du réseau aurait ouvert une application privée de ses
+// statistiques, sans le moindre message.
 const ASSETS = [
-  './',
-  './index.html',
-  './chrono.css',
-  './flip.css',
-  './chrono.js',
-  './timer.js',
-  './manifest.webmanifest',
-  './brand.png',
-  './icon-192.png',
-  './icon-512.png',
-  './icon-maskable-512.png',
-  './apple-touch-icon.png',
-  './fonts/Inter-SemiBold.ttf',
-  './fonts/Inter-Bold.ttf'
+  "./",
+  "./apple-touch-icon.png",
+  "./badges/badge-01.png",
+  "./badges/badge-02.png",
+  "./badges/badge-03.png",
+  "./badges/badge-04.png",
+  "./badges/badge-05.png",
+  "./badges/badge-06.png",
+  "./badges/badge-07.png",
+  "./badges/badge-08.png",
+  "./badges/badge-09.png",
+  "./badges/badge-10.png",
+  "./brand.png",
+  "./chrono.css",
+  "./chrono.js",
+  "./flip.css",
+  "./fonts/Inter-Bold.ttf",
+  "./fonts/Inter-SemiBold.ttf",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./icon-maskable-512.png",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./suivi-ui.js",
+  "./suivi.css",
+  "./suivi.js",
+  "./timer.js"
 ];
 
 self.addEventListener('install', (e) => {
