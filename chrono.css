@@ -51,8 +51,16 @@ body{
 .scene{
   position:fixed;inset:0;
   display:flex;align-items:center;justify-content:center;
-  padding:max(env(safe-area-inset-top),12px) max(env(safe-area-inset-right),16px)
-          max(env(safe-area-inset-bottom),12px) max(env(safe-area-inset-left),16px);
+  /* Les marges gauche et droite sont **égales**, et valent la plus grande des
+     deux zones sûres. Les prendre chacune de son côté était le réflexe, et
+     décentrait l'horloge dès qu'un appareil n'a d'encoche que d'un côté :
+     l'écart entre les deux marges se voyait sur un cadran qui occupe l'écran.
+     Perdre quelques pixels du côté sans encoche coûte moins qu'un affichage de
+     travers. */
+  padding:max(env(safe-area-inset-top),12px)
+          max(env(safe-area-inset-right),env(safe-area-inset-left),16px)
+          max(env(safe-area-inset-bottom),12px)
+          max(env(safe-area-inset-right),env(safe-area-inset-left),16px);
   /* Déclaré conteneur de dimensionnement : les cartes se mesurent sur lui, et
      non sur la fenêtre — c'est ce que `flip.css` attend. */
   container-type:size;
@@ -93,7 +101,9 @@ body.epure .marque{opacity:0;}
   position:fixed;left:0;right:0;
   bottom:calc(max(env(safe-area-inset-bottom),14px) + clamp(46px,7vh,64px) + 20px);
   display:flex;align-items:center;justify-content:center;gap:8px;
-  padding:0 max(env(safe-area-inset-right),16px) 0 max(env(safe-area-inset-left),16px);
+  /* Mêmes marges des deux côtés que la scène, pour la même raison : une
+     encoche d'un seul côté décentrerait la rangée. */
+  padding:0 max(env(safe-area-inset-right),env(safe-area-inset-left),16px);
   overflow-x:auto;overscroll-behavior-x:contain;
   scrollbar-width:none;
   z-index:2;

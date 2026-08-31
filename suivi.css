@@ -11,15 +11,26 @@
 .voile{
   position:fixed;inset:0;z-index:10;
   background:var(--bg);
-  display:flex;align-items:center;justify-content:center;
-  padding:max(env(safe-area-inset-top),14px) max(env(safe-area-inset-right),18px)
-          max(env(safe-area-inset-bottom),14px) max(env(safe-area-inset-left),18px);
-  overflow-y:auto;overscroll-behavior:contain;
+  display:flex;justify-content:center;
+  /* Marges latérales égales, comme la scène : une encoche d'un seul côté
+     décentrerait le panneau. */
+  padding:max(env(safe-area-inset-top),14px)
+          max(env(safe-area-inset-right),env(safe-area-inset-left),18px)
+          max(env(safe-area-inset-bottom),14px)
+          max(env(safe-area-inset-right),env(safe-area-inset-left),18px);
+  /* PAS DE DÉFILEMENT ICI. C'est le corps du panneau qui défile, pour que
+     l'en-tête et son bouton « Fermer » restent atteignables. Faire défiler le
+     voile entier les emportait hors de l'écran : il fallait remonter pour
+     fermer, et redescendre pour retrouver le reste. */
+  overflow:hidden;overscroll-behavior:contain;
 }
 .voile[hidden]{display:none;}
 
 .panneau{
   width:100%;max-width:520px;
+  /* `max-height` plutôt qu'une hauteur : un panneau court reste centré
+     verticalement, un panneau long occupe l'écran sans le dépasser. */
+  max-height:100%;margin:auto 0;
   display:flex;flex-direction:column;gap:clamp(10px,1.8vh,18px);
   font-family:'Inter',system-ui,sans-serif;
 }
@@ -49,6 +60,9 @@
 
 .choix{
   display:flex;flex-wrap:wrap;gap:clamp(7px,1.2vh,11px);
+  /* Beaucoup de catégories tiendraient mal sur un écran bas : c'est la liste
+     qui défile, pas la question ni la durée qui l'accompagne. */
+  flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
 }
 
 /* Cibles larges : on répond à cette question une main occupée, sans viser. */
@@ -89,7 +103,20 @@
 
 /* --------------------------------------------------------- progression */
 
-.prog-corps{display:flex;flex-direction:column;gap:clamp(12px,2.2vh,22px);}
+/* Seule cette partie défile. `min-height:0` est indispensable : sans elle, un
+   élément de flex refuse de rétrécir sous la taille de son contenu, et le
+   panneau reprendrait sa hauteur entière — le défilement reviendrait sur le
+   voile, avec l'en-tête qui s'échappe. */
+.prog-corps{
+  flex:1 1 auto;min-height:0;
+  overflow-y:auto;overscroll-behavior:contain;
+  display:flex;flex-direction:column;gap:clamp(12px,2.2vh,22px);
+  padding-right:2px;
+}
+
+/* L'en-tête et le pied ne défilent pas : le bouton « Fermer » et les deux
+   entrées de réglage restent là où on les a laissés. */
+.panneau-entete,.panneau-pied{flex:0 0 auto;}
 
 /* Les trois totaux du haut : aujourd'hui, la semaine, la série. */
 .totaux{display:flex;gap:clamp(8px,1.4vh,14px);}
