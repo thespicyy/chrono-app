@@ -20,34 +20,32 @@
   var MS_MINUTE = 60000;
 
   /*
-   * Courbe de niveaux.
+   * Échelle des niveaux : **dix heures par palier**, sans accélération.
    *
-   * Le seuil du niveau n vaut `base × (n−1) × n / 2` minutes : chaque niveau
-   * demande une tranche un peu plus longue que le précédent. Avec 30 minutes de
-   * base, on atteint le niveau 2 après une demi-heure, le 5 après trois heures,
-   * le 10 après vingt-deux heures et demie.
+   * Le niveau n s'atteint à `base × (n − 1)` minutes. Une progression
+   * régulière se prévoit de tête — on sait toujours ce qu'il reste à faire, et
+   * dix heures de plus valent autant au niveau 3 qu'au niveau 12. Une courbe
+   * qui s'allonge à chaque palier récompense surtout les débuts et finit par
+   * rendre les niveaux élevés hors d'atteinte ; ce n'est pas ce qu'on veut d'un
+   * suivi de travail, où l'on cherche la régularité plutôt que la performance.
    *
-   * Une progression linéaire rendrait les premiers niveaux trop lents et les
-   * suivants sans relief ; une progression exponentielle rendrait les niveaux
-   * élevés inatteignables sur un sujet qu'on travaille deux heures par semaine.
-   * Une somme d'entiers tient entre les deux et se calcule de tête.
+   * La même échelle sert aux catégories et au total. Le niveau général monte
+   * donc plus vite, ce qui est juste : il additionne tout ce qu'on a fait.
    */
-  var BASE_CATEGORIE = 30;   //: minutes, pour le niveau d'une catégorie
-  var BASE_GLOBALE = 60;     //: minutes, pour le niveau général
+  var BASE_CATEGORIE = 600;   //: minutes, soit dix heures par niveau
+  var BASE_GLOBALE = 600;     //: la même échelle pour le total
 
   /** Minutes cumulées nécessaires pour atteindre `niveau`. Le niveau 1 est à 0. */
   function seuil(niveau, base) {
-    if (niveau <= 1) return 0;
-    return base * (niveau - 1) * niveau / 2;
+    return niveau <= 1 ? 0 : base * (niveau - 1);
   }
 
   /**
    * Niveau atteint avec `minutes`, et ce qu'il reste avant le suivant.
    *
-   * Résolu par recherche montante plutôt que par la formule inverse : la
-   * réciproque d'une somme d'entiers passe par une racine carrée, dont
-   * l'arrondi flottant fait basculer d'un niveau pile sur les seuils — et les
-   * seuils sont exactement les valeurs qu'on regarde.
+   * Résolu par recherche montante plutôt que par une division : sur un seuil
+   * exact, `Math.floor` d'un quotient flottant bascule une fois sur deux du
+   * mauvais côté — et les seuils sont précisément les valeurs qu'on regarde.
    */
   function niveauPour(minutes, base) {
     var m = Math.max(0, minutes);
