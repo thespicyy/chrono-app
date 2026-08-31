@@ -436,7 +436,7 @@
 
     el.progCorps.appendChild(elem('p', 'note',
       'Retirer une catégorie ne supprime pas le temps déjà compté : il reste ' +
-      'dans l\'historique. Renommer non plus — le journal retient la catégorie, ' +
+      'dans l’historique. Renommer non plus — le journal retient la catégorie, ' +
       'pas son nom.'));
   }
 
@@ -488,7 +488,8 @@
       var couper = elem('button', 'bouton bouton-discret', 'Découpler cet appareil');
       couper.addEventListener('click', function () {
         cfg = null;
-        try { localStorage.removeItem(CLE_SYNC); } catch (err) { logErreur('découplage', err); }
+        try { localStorage.removeItem(CLE_SYNC); }
+        catch (err) { logErreur('découplage', err); }
         etatSync = 'absente';
         dessinerProgression();
       });
@@ -496,10 +497,36 @@
     }
 
     el.progCorps.appendChild(elem('p', 'note',
-      'Le code est le même que celui de TaskMint : il porte l\'adresse du projet, ' +
-      'la clé publique et le secret de synchro. Il n\'est écrit nulle part dans ' +
+      'Le code est le même que celui de TaskMint : il porte l’adresse du projet, ' +
+      'la clé publique et le secret de synchro. Il n’est écrit nulle part dans ' +
       'cette page — le site étant public, une clé qui y figurerait serait publiée ' +
       'avec lui.'));
+
+    // ── Ce que l'appareil dit de son écran ────────────────────────────
+    //
+    // Un affichage décentré peut venir de deux causes qu'on ne distingue pas
+    // à l'œil : soit la vue s'étend sous l'encoche et les marges sûres sont
+    // inégales, soit le système l'exclut et la vue elle-même est décalée sur
+    // l'écran. Ces quatre nombres tranchent, et rien ne permet de les obtenir
+    // depuis un poste de développement.
+    var sondeur = document.createElement('div');
+    sondeur.style.cssText =
+      'position:absolute;visibility:hidden;pointer-events:none;' +
+      'padding:env(safe-area-inset-top) env(safe-area-inset-right)' +
+      ' env(safe-area-inset-bottom) env(safe-area-inset-left);';
+    document.body.appendChild(sondeur);
+    var mesure = getComputedStyle(sondeur);
+    var marges = [mesure.paddingTop, mesure.paddingRight,
+                  mesure.paddingBottom, mesure.paddingLeft]
+      .map(function (v) { return Math.round(parseFloat(v) || 0); });
+    document.body.removeChild(sondeur);
+
+    el.progCorps.appendChild(elem('p', 'note',
+      'Affichage : ' + window.innerWidth + ' × ' + window.innerHeight +
+      ' points, densité ' + (window.devicePixelRatio || 1) +
+      ' · zones sûres haut/droite/bas/gauche : ' + marges.join(' / ') + ' px' +
+      ' · écran ' + (window.screen ? window.screen.width + ' × ' +
+                     window.screen.height : '?') + '.'));
   }
 
   function entetes() {
