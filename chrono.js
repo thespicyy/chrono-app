@@ -533,8 +533,19 @@
     });
   }
 
+  //: Un tick sur soixante, soit toutes les quinze secondes. Le chronomètre
+  //: n'a besoin que de son horodatage de départ, écrit au démarrage — mais si
+  //: cette écriture-là échoue ou se perd, plus rien ne la rattrape. Réécrire
+  //: régulièrement borne la perte à quinze secondes au lieu de tout.
+  var TICKS_ENTRE_ECRITURES = 60;
+  var ticksDepuisEcriture = 0;
+
   function tick() {
     var maintenant = Date.now();
+    if (state.session.running && ++ticksDepuisEcriture >= TICKS_ENTRE_ECRITURES) {
+      ticksDepuisEcriture = 0;
+      ecrire();
+    }
     // La fin est constatée ici, et non programmée par une minuterie : une
     // minuterie de plusieurs minutes est bridée en arrière-plan, et l'appareil
     // peut se mettre en veille entre-temps. L'horodatage de fin, lui, reste
@@ -759,7 +770,9 @@
   });
 
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState !== 'visible') return;
+    // En partant : on enregistre. C'est le dernier moment garanti avant qu'un
+    // système mobile puisse fermer la page sans autre avertissement.
+    if (document.visibilityState !== 'visible') { enregistrerEtat(); return; }
     // Le système a repris le verrou d'écran pendant l'absence, et l'affichage
     // peut avoir plusieurs minutes de retard : on rattrape les deux.
     garderEcranAllume();
@@ -771,7 +784,18 @@
     document.addEventListener(evenement, taire, { passive: true });
   });
 
-  window.addEventListener('beforeunload', ecrire);
+  /*
+   * Trois occasions d'enregistrer, et ce n'est pas de la redondance gratuite.
+   *
+   * `beforeunload` ne se déclenche pas de façon fiable sur mobile : un système
+   * qui récupère de la mémoire ferme la page sans prévenir. `pagehide` et le
+   * passage à l'état caché sont les deux moments que les navigateurs mobiles
+   * garantissent — c'est là qu'il faut écrire, pas au déchargement.
+   */
+  function enregistrerEtat() { ecrire(); ticksDepuisEcriture = 0; }
+
+  window.addEventListener('beforeunload', enregistrerEtat);
+  window.addEventListener('pagehide', enregistrerEtat);
 
   // ── Démarrage ───────────────────────────────────────────────────────────
   appliquerDecalage();
