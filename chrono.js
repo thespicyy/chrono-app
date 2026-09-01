@@ -93,6 +93,15 @@
   var VUES = ['chrono', 'minuteur', 'horloge'];
   var CLE_VUE = 'chrono_pwa_vue';
 
+  //: Le chronomètre mis de côté pendant qu'on regarde autre chose.
+  //:
+  //: `selectMode` du moteur remet la session à zéro — c'est son rôle, il n'y a
+  //: qu'une session pour tous les modes. Mais changer de **vue** n'est pas
+  //: changer d'activité : aller voir l'heure puis revenir ne doit pas effacer
+  //: un chronomètre en marche. Ses trois champs sont donc mis à l'abri en
+  //: partant et reposés au retour.
+  var CLE_CHRONO = 'chrono_pwa_chrono';
+
   //: Durées toutes prêtes, par tranches de trente minutes.
   var DUREES = [30, 60, 90, 120, 150, 180];
 
@@ -144,6 +153,39 @@
   }
 
   function enMinuteur() { return vue === 'minuteur'; }
+
+  /** Met le chronomètre à l'abri avant que le moteur ne change de mode. */
+  function sauverChrono() {
+    var s = state.session;
+    if (!T.isChrono(s.mode)) return;
+    try {
+      localStorage.setItem(CLE_CHRONO, JSON.stringify({
+        running: s.running === true,
+        startTimestamp: s.startTimestamp,
+        elapsedMs: s.elapsedMs
+      }));
+    } catch (err) {
+      logErreur('sauverChrono', err);
+    }
+  }
+
+  /** Repose le chronomètre tel qu'il était. */
+  function restaurerChrono() {
+    try {
+      var brut = JSON.parse(localStorage.getItem(CLE_CHRONO));
+      if (!brut) return;
+      var s = state.session;
+      var ecoule = parseFloat(brut.elapsedMs);
+      var depart = parseFloat(brut.startTimestamp);
+      s.elapsedMs = isFinite(ecoule) && ecoule >= 0 ? ecoule : 0;
+      s.startTimestamp = isFinite(depart) ? depart : null;
+      // Un chrono ne peut être en marche que s'il a un départ : c'est la même
+      // règle défensive que celle du moteur à la relecture.
+      s.running = brut.running === true && s.startTimestamp !== null;
+    } catch (err) {
+      logErreur('restaurerChrono', err);
+    }
+  }
   function enHorloge() { return vue === 'horloge'; }
 
   // ── Durée du minuteur ───────────────────────────────────────────────────
@@ -616,13 +658,27 @@
 
   function basculerMode() {
     taire();
+    // Avant tout : mettre le chronomètre à l'abri. Ce qui suit peut appeler
+    // `selectMode`, qui l'effacerait sans retour.
+    sauverChrono();
+
     vue = VUES[(VUES.indexOf(vue) + 1) % VUES.length];
     ecrireVue();
-    // L'horloge ne touche pas au moteur : ce qui tournait continue de tourner,
-    // et se retrouve tel quel au retour.
-    if (!enHorloge()) T.selectMode(state, enMinuteur() ? MINUTEUR : 'chrono');
-    // Rien à reposer : `selectMode` tire la durée des réglages, et c'est
-    // désormais là que vit la durée voulue.
+
+    // Le moteur ne change de mode QUE si le mode voulu diffère du sien.
+    // L'appeler à chaque bascule était le défaut : revenir au chronomètre
+    // après un détour par l'horloge remettait à zéro un chrono qui tournait,
+    // alors que le mode du moteur n'avait pas bougé. Vingt minutes perdues
+    // d'une pression sur un bouton qui ne prétendait que changer de vue.
+    if (!enHorloge()) {
+      var cible = enMinuteur() ? MINUTEUR : 'chrono';
+      if (state.session.mode !== cible) {
+        T.selectMode(state, cible);
+        // Et si on revient au chronomètre après être passé par le minuteur,
+        // on lui rend ce qu'il avait.
+        if (cible === 'chrono') restaurerChrono();
+      }
+    }
     ecrire();
     majMode();
     majVolets(T.displayMs(state, Date.now()), false);
