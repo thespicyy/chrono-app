@@ -17,9 +17,9 @@
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
 <link rel="icon" type="image/png" href="icon-192.png"/>
-<link rel="stylesheet" href="flip.css?v=21"/>
-<link rel="stylesheet" href="chrono.css?v=21"/>
-<link rel="stylesheet" href="suivi.css?v=21"/>
+<link rel="stylesheet" href="flip.css?v=22"/>
+<link rel="stylesheet" href="chrono.css?v=22"/>
+<link rel="stylesheet" href="suivi.css?v=22"/>
 </head>
 <body>
 
@@ -88,6 +88,15 @@
     <p class="panneau-duree" id="fin-duree">0 min</p>
     <p class="panneau-question">Sur quoi ?</p>
     <div class="choix" id="fin-choix"></div>
+
+    <!-- Créer une catégorie sans quitter la question. Sans cela, une session
+         portant sur un sujet nouveau ne laissait que deux issues : la ranger
+         dans une catégorie qui ne lui convient pas, ou la jeter. -->
+    <div class="saisie" id="fin-saisie" hidden>
+      <input type="text" id="fin-nouvelle" maxlength="40"
+             placeholder="Nom de la catégorie"/>
+      <button class="bouton" id="fin-creer" type="button">Créer</button>
+    </div>
     <div class="panneau-pied">
       <button class="lien" id="fin-ignorer" type="button">Ne pas compter</button>
     </div>
@@ -117,9 +126,9 @@
 <!-- Signature de branding, comme en pied des autres applications NOIR. -->
 <img class="marque" src="brand.png" alt="NOIR">
 
-<script src="timer.js?v=21"></script>
-<script src="suivi.js?v=21"></script>
-<script src="suivi-ui.js?v=21"></script>
-<script src="chrono.js?v=21"></script>
+<script src="timer.js?v=22"></script>
+<script src="suivi.js?v=22"></script>
+<script src="suivi-ui.js?v=22"></script>
+<script src="chrono.js?v=22"></script>
 </body>
 </html>

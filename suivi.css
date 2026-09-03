@@ -80,6 +80,10 @@
 }
 .categorie:active{background:var(--text);border-color:var(--text);color:var(--bg);}
 
+/* Créer une catégorie n'est pas choisir une catégorie : le trait interrompu la
+   distingue des autres sans la reléguer hors de portée. */
+.categorie-neuve{border-style:dashed;color:var(--text2);}
+
 /* Le niveau accompagne le nom : choisir sa catégorie, c'est déjà voir où on en
    est — sans avoir à ouvrir la progression. */
 .categorie .rang{

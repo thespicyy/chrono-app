@@ -128,6 +128,9 @@
     finDuree: document.getElementById('fin-duree'),
     finChoix: document.getElementById('fin-choix'),
     finIgnorer: document.getElementById('fin-ignorer'),
+    finSaisie: document.getElementById('fin-saisie'),
+    finNouvelle: document.getElementById('fin-nouvelle'),
+    finCreer: document.getElementById('fin-creer'),
     voileProg: document.getElementById('voile-progression'),
     progTitre: document.getElementById('prog-titre'),
     progCorps: document.getElementById('prog-corps'),
@@ -178,6 +181,7 @@
 
   /** Pose la question pour la première session de la file, s'il y en a une. */
   function montrerAttente() {
+    el.finSaisie.hidden = true;
     if (!attente.length) { el.voileFin.hidden = true; return false; }
     if (!categoriesVives().length) amorcer();
     if (!categoriesVives().length) return false;
@@ -212,6 +216,44 @@
       bouton.addEventListener('click', function () { compter(categorie); });
       el.finChoix.appendChild(bouton);
     });
+
+    // En dernier, distincte des autres : créer une catégorie ici même. Une
+    // session portant sur un sujet nouveau ne laissait sinon que deux issues —
+    // la ranger dans une catégorie qui ne lui convient pas, ou la jeter.
+    var neuve = document.createElement('button');
+    neuve.type = 'button';
+    neuve.className = 'categorie categorie-neuve';
+    neuve.textContent = '+ Nouvelle';
+    neuve.addEventListener('click', function () {
+      el.finSaisie.hidden = false;
+      el.finNouvelle.value = '';
+      try { el.finNouvelle.focus(); } catch (err) { /* sans gravité */ }
+    });
+    el.finChoix.appendChild(neuve);
+  }
+
+  /**
+   * Crée la catégorie saisie, ou retrouve celle qui porte déjà ce nom, puis
+   * compte la session dessus.
+   *
+   * Retrouver plutôt que créer n'est pas un détail : deux catégories de même
+   * nom couperaient l'historique en deux sans que rien ne le signale.
+   */
+  function creerEtCompter() {
+    var nom = (el.finNouvelle.value || '').trim();
+    if (!nom) return;
+    var connue = categoriesVives().filter(function (c) {
+      return c.nom.toLowerCase() === nom.toLowerCase();
+    })[0];
+    if (!connue) {
+      connue = { id: identifiant(), nom: nom, supprime: false,
+                 majA: Date.now(), sale: true };
+      categories.push(connue);
+      ecrire(CLE_CATEGORIES, categories);
+    }
+    el.finSaisie.hidden = true;
+    el.finNouvelle.value = '';
+    compter(connue);
   }
 
   /*
@@ -252,6 +294,11 @@
 
   // « Ne pas compter » est le seul geste qui jette une session : la fermeture
   // ne fait que remettre la question à plus tard.
+  el.finCreer.addEventListener('click', creerEtCompter);
+  el.finNouvelle.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); creerEtCompter(); }
+  });
+
   el.finIgnorer.addEventListener('click', function () {
     defilerAttente();
     if (!montrerAttente()) el.voileFin.hidden = true;
