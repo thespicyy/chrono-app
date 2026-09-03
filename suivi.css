@@ -269,6 +269,34 @@
 }
 .retirer:active{color:var(--text);}
 
+/* Un interrupteur, pas une case à cocher : on le règle en regardant l'écran
+   derrière, et sa position se lit sans avoir à décrypter une coche. */
+.bascule{display:flex;align-items:center;gap:12px;}
+.bascule-nom{
+  flex:1 1 auto;min-width:0;
+  color:var(--text3);font-weight:600;font-size:clamp(13px,2vh,15px);
+}
+.interrupteur{
+  flex:0 0 auto;
+  width:clamp(52px,8vh,64px);height:clamp(30px,4.6vh,36px);
+  border-radius:999px;
+  border:1px solid var(--border-strong);background:var(--surface2);
+  padding:3px;cursor:pointer;
+  display:flex;align-items:center;
+  transition:background .18s,border-color .18s;
+}
+.interrupteur i{
+  display:block;
+  width:calc(50% - 3px);height:100%;
+  border-radius:999px;background:var(--text2);
+  transform:translateX(0);
+  transition:transform .18s ease,background .18s;
+}
+/* Allumé : la pastille passe à droite et prend la couleur pleine. Le fond
+   change aussi, pour que l'état se lise même sans percevoir le déplacement. */
+.interrupteur.actif{background:var(--text);border-color:var(--text);}
+.interrupteur.actif i{transform:translateX(100%);background:var(--bg);}
+
 /* Le réglage de centrage : un libellé, deux flèches, la valeur, un retour au
    centre. Sur une seule ligne, parce qu'on le règle en regardant l'horloge
    derrière — pas en lisant un formulaire. */

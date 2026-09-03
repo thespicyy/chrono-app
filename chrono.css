@@ -87,6 +87,22 @@ body.epure .flip-cartes{font-size:min(70cqh,38cqw,620px);}
    l'application, pas au cadran. */
 body.epure .marque{opacity:0;}
 
+/* L'heure en petit, coin haut gauche — le seul que ne prend aucun bouton.
+   Elle reste visible quand les commandes s'effacent : c'est une information
+   qu'on vient lire, pas une commande dont on se passe. */
+.heure-coin{
+  position:fixed;z-index:3;
+  top:max(env(safe-area-inset-top),14px);
+  left:max(env(safe-area-inset-left),16px);
+  color:var(--text2);
+  font-family:'Inter',system-ui,sans-serif;font-weight:600;
+  font-size:clamp(13px,2.2vh,19px);
+  letter-spacing:0.02em;
+  font-variant-numeric:tabular-nums;
+  user-select:none;-webkit-user-select:none;pointer-events:none;
+}
+.heure-coin[hidden]{display:none;}
+
 /* ---------------------------------------------------- durées du minuteur */
 /*
  * Une rangée de durées toutes prêtes, sous l'horloge et au-dessus des
@@ -292,10 +308,12 @@ body.epure .coin{opacity:0;pointer-events:none;}
 .cmd-principal:active{background:#d9d9d9;}
 
 /* ------------------------------------------------------------- signature */
+/* Au centre du haut, et non plus dans le coin droit : le bouton de
+   synchronisation y est passé, et les deux se superposaient — mesuré. */
 .marque{
   position:fixed;
   top:max(env(safe-area-inset-top),12px);
-  right:max(env(safe-area-inset-right),16px);
+  left:50%;transform:translateX(-50%);
   height:13px;width:auto;opacity:.22;
   transition:opacity .5s ease;
   user-select:none;-webkit-user-select:none;pointer-events:none;

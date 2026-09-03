@@ -102,6 +102,20 @@
   //: partant et reposés au retour.
   var CLE_CHRONO = 'chrono_pwa_chrono';
 
+  //: L'heure affichée en petit pendant qu'on chronomètre ou qu'on décompte.
+  //: Activée par défaut : elle ne coûte rien à qui n'en veut pas — un coin
+  //: d'écran — et évite de basculer sur l'horloge pour un coup d'œil.
+  var CLE_HEURE_COIN = 'chrono_pwa_heure_coin';
+
+  function heureCoinActive() {
+    try {
+      return localStorage.getItem(CLE_HEURE_COIN) !== '0';
+    } catch (err) {
+      logErreur('lire l’heure en coin', err);
+      return true;
+    }
+  }
+
   //: Durées toutes prêtes, par tranches de trente minutes.
   var DUREES = [30, 60, 90, 120, 150, 180];
 
@@ -248,6 +262,7 @@
     reset:      document.getElementById('reset'),
     synchro: document.getElementById('synchro'),
     progression: document.getElementById('progression'),
+    heureCoin: document.getElementById('heure-coin'),
     mode:       document.getElementById('mode'),
     iconeMode:  document.getElementById('icone-mode-forme'),
     durees:     document.getElementById('durees')
@@ -582,8 +597,22 @@
   var TICKS_ENTRE_ECRITURES = 60;
   var ticksDepuisEcriture = 0;
 
+  /**
+   * L'heure en petit dans le coin.
+   *
+   * Jamais en vue horloge : elle y ferait doublon avec les chiffres géants.
+   */
+  function majHeureCoin() {
+    var montrer = heureCoinActive() && !enHorloge();
+    el.heureCoin.hidden = !montrer;
+    if (!montrer) return;
+    var h = new Date();
+    el.heureCoin.textContent = pad2(h.getHours()) + ':' + pad2(h.getMinutes());
+  }
+
   function tick() {
     var maintenant = Date.now();
+    majHeureCoin();
     if (state.session.running && ++ticksDepuisEcriture >= TICKS_ENTRE_ECRITURES) {
       ticksDepuisEcriture = 0;
       ecrire();
@@ -656,13 +685,14 @@
     reveillerBarre();
   }
 
-  function basculerMode() {
+  function basculerMode(sens) {
     taire();
     // Avant tout : mettre le chronomètre à l'abri. Ce qui suit peut appeler
     // `selectMode`, qui l'effacerait sans retour.
     sauverChrono();
 
-    vue = VUES[(VUES.indexOf(vue) + 1) % VUES.length];
+    var pas = (sens === -1) ? VUES.length - 1 : 1;
+    vue = VUES[(VUES.indexOf(vue) + pas) % VUES.length];
     ecrireVue();
 
     // Le moteur ne change de mode QUE si le mode voulu diffère du sien.
@@ -681,6 +711,7 @@
     }
     ecrire();
     majMode();
+    majHeureCoin();
     majVolets(T.displayMs(state, Date.now()), false);
     majBouton();
     reveillerBarre();
@@ -794,9 +825,49 @@
     if (window.SuiviUI) window.SuiviUI.ouvrirProgression();
   });
 
+  // ── Balayage vertical : changer de vue ──────────────────────────────────
+  //
+  // Vers le haut on avance dans le cycle, vers le bas on recule — comme on
+  // ferait défiler une pile de cadrans. Le geste doit être franchement
+  // vertical : un glissement de biais pendant qu'on vise un bouton ne doit pas
+  // changer de vue par surprise.
+
+  //: En deçà, c'est une tape imprécise et non un balayage.
+  var COURSE_MINIMALE = 56;
+  //: Un balayage part et arrive vite. Au-delà, c'est un doigt posé qui a glissé.
+  var DUREE_MAXIMALE_MS = 900;
+
+  var depart = null;
+  //: Un balayage se termine aussi par un `click` : sans ce drapeau, il
+  //: changerait de vue **et** démarrerait le chronomètre.
+  var balayageFait = false;
+
+  el.scene.addEventListener('pointerdown', function (e) {
+    depart = { x: e.clientX, y: e.clientY, t: Date.now() };
+  });
+
+  el.scene.addEventListener('pointercancel', function () { depart = null; });
+
+  el.scene.addEventListener('pointerup', function (e) {
+    if (!depart) return;
+    var dx = e.clientX - depart.x;
+    var dy = e.clientY - depart.y;
+    var duree = Date.now() - depart.t;
+    depart = null;
+    if (duree > DUREE_MAXIMALE_MS) return;
+    if (Math.abs(dy) < COURSE_MINIMALE) return;
+    // Franchement vertical : une diagonale ne compte pas.
+    if (Math.abs(dy) < Math.abs(dx) * 1.4) return;
+    if (window.SuiviUI && window.SuiviUI.ouvert()) return;
+    balayageFait = true;
+    basculerMode(dy < 0 ? 1 : -1);
+  });
+
   // Toute la scène commande : viser un bouton de quelques millimètres sur un
   // appareil posé à un mètre n'a aucun intérêt.
   el.scene.addEventListener('click', function () {
+    // Le clic qui suit un balayage : il a déjà servi à changer de vue.
+    if (balayageFait) { balayageFait = false; return; }
     // Un panneau ouvert couvre l'écran : une tape qui le traverserait
     // démarrerait le chronomètre dans le dos de l'utilisateur.
     if (window.SuiviUI && window.SuiviUI.ouvert()) return;
@@ -855,6 +926,7 @@
 
   // ── Démarrage ───────────────────────────────────────────────────────────
   appliquerDecalage();
+  majHeureCoin();
   construireDurees();
   majMode();
   majVolets(T.displayMs(state, Date.now()), false);   // sans bascule : c'est un état retrouvé
@@ -868,7 +940,10 @@
   setInterval(tick, 250);
 
   // Le panneau de réglage repose le décalage sans recharger la page.
-  window.ChronoAffichage = { appliquerDecalage: appliquerDecalage };
+  window.ChronoAffichage = {
+    appliquerDecalage: appliquerDecalage,
+    majHeureCoin: majHeureCoin
+  };
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {

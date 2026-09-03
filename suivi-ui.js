@@ -613,6 +613,44 @@
         : 'La vue occupe tout l’écran : un décalage éventuel se corrige ici, ' +
           'avec le réglage de centrage ci-dessous.'));
 
+    // ── L’heure en petit ────────────────────────────────────────────
+    var bascule = elem('div', 'bascule');
+    var interrupteur = elem('button', 'interrupteur');
+    interrupteur.type = 'button';
+    interrupteur.appendChild(elem('i'));
+
+    function lireHeureCoin() {
+      try { return localStorage.getItem('chrono_pwa_heure_coin') !== '0'; }
+      catch (err) { return true; }
+    }
+
+    function peindreInterrupteur() {
+      var actif = lireHeureCoin();
+      interrupteur.classList.toggle('actif', actif);
+      interrupteur.setAttribute('aria-pressed', actif ? 'true' : 'false');
+    }
+
+    interrupteur.setAttribute('aria-label', 'Afficher l’heure en petit');
+    interrupteur.addEventListener('click', function () {
+      try {
+        localStorage.setItem('chrono_pwa_heure_coin', lireHeureCoin() ? '0' : '1');
+      } catch (err) {
+        logErreur('écrire l’heure en coin', err);
+      }
+      peindreInterrupteur();
+      if (window.ChronoAffichage) window.ChronoAffichage.majHeureCoin();
+    });
+
+    bascule.appendChild(elem('span', 'bascule-nom', 'Heure en petit dans le coin'));
+    bascule.appendChild(interrupteur);
+    el.progCorps.appendChild(bascule);
+    peindreInterrupteur();
+
+    el.progCorps.appendChild(elem('p', 'note',
+      'Elle paraît en chronomètre et en minuteur, jamais en vue horloge — elle ' +
+      'y ferait doublon. Elle ne s’efface pas avec les commandes : c’est une ' +
+      'information qu’on vient lire, pas un bouton dont on se passe.'));
+
     // ── Centrage de l'horloge ─────────────────────────────────────────
     //
     // Deux boutons plutôt qu'une valeur devinée. Un affichage décentré vient
