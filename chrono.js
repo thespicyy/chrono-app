@@ -843,24 +843,37 @@
   var balayageFait = false;
 
   el.scene.addEventListener('pointerdown', function (e) {
-    depart = { x: e.clientX, y: e.clientY, t: Date.now() };
+    depart = { x: e.clientX, y: e.clientY, t: Date.now(), consomme: false };
+    // Le pointeur est capturé pour que la suite du geste revienne ici même si
+    // le doigt passe au-dessus d'un bouton de coin.
+    try { el.scene.setPointerCapture(e.pointerId); } catch (err) { /* sans gravité */ }
   });
 
-  el.scene.addEventListener('pointercancel', function () { depart = null; });
-
-  el.scene.addEventListener('pointerup', function (e) {
-    if (!depart) return;
+  /*
+   * LA DÉCISION SE PREND EN COURS DE GESTE, pas au lever du doigt.
+   *
+   * Attendre `pointerup` paraissait naturel et ne marchait pas sur un vrai
+   * appareil : dès qu'un navigateur juge un glissement vertical susceptible
+   * d'être un défilement, il s'approprie le geste et envoie `pointercancel` —
+   * le lever n'arrive jamais. Franchir le seuil suffit donc à décider, et ce
+   * qui se passe ensuite n'a plus d'importance.
+   */
+  el.scene.addEventListener('pointermove', function (e) {
+    if (!depart || depart.consomme) return;
     var dx = e.clientX - depart.x;
     var dy = e.clientY - depart.y;
-    var duree = Date.now() - depart.t;
-    depart = null;
-    if (duree > DUREE_MAXIMALE_MS) return;
+    if (Date.now() - depart.t > DUREE_MAXIMALE_MS) { depart = null; return; }
     if (Math.abs(dy) < COURSE_MINIMALE) return;
     // Franchement vertical : une diagonale ne compte pas.
     if (Math.abs(dy) < Math.abs(dx) * 1.4) return;
     if (window.SuiviUI && window.SuiviUI.ouvert()) return;
+    depart.consomme = true;
     balayageFait = true;
     basculerMode(dy < 0 ? 1 : -1);
+  });
+
+  ['pointerup', 'pointercancel'].forEach(function (evenement) {
+    el.scene.addEventListener(evenement, function () { depart = null; });
   });
 
   // Toute la scène commande : viser un bouton de quelques millimètres sur un

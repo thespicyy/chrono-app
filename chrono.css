@@ -65,6 +65,13 @@ body{
      non sur la fenêtre — c'est ce que `flip.css` attend. */
   container-type:size;
   cursor:pointer;
+  /* AUCUN GESTE N'EST LAISSÉ AU NAVIGATEUR ICI. Avec `manipulation`, hérité du
+     corps, un glissement vertical est considéré comme un défilement candidat :
+     le navigateur s'approprie le geste et **annule le pointeur** avant qu'il ne
+     se lève. Le balayage de changement de vue ne se déclenchait donc jamais sur
+     un vrai appareil, alors qu'il marchait avec des événements synthétiques.
+     La scène n'a rien à faire défiler : elle peut tout garder. */
+  touch-action:none;
 }
 
 /* Plein écran : les cartes prennent toute la place, sans le plafond de 150 px
