@@ -162,10 +162,14 @@
 
     var pied = elem('div', 'tuile-pied');
     pied.appendChild(elem('span', null, 'Niv. ' + c.niveau.niveau));
-    // Ce qui a déjà été compté aujourd'hui : la seule chose qu'on vient
-    // vérifier avant de taper, et ce qui évite de compter deux fois.
-    pied.appendChild(elem('span', 'tuile-jour',
-      c.aujourdhui > 0 ? S.formatValeur(c.aujourdhui, c.unite) : '—'));
+    // Ce qui a été compté aujourd'hui — la seule chose qu'on vient vérifier
+    // avant de taper, et ce qui évite de compter deux fois. Le « + » dit que
+    // c'est un ajout du jour et non un total ; rien du tout quand il n'y a
+    // rien, car un tiret se lit comme une donnée manquante, pas comme un zéro.
+    if (c.aujourdhui > 0) {
+      pied.appendChild(elem('span', 'tuile-jour',
+        '+' + S.formatValeur(c.aujourdhui, c.unite)));
+    }
     bouton.appendChild(pied);
 
     if (c.unite === 'temps') {

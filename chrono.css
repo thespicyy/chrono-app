@@ -41,6 +41,16 @@ body{
   overscroll-behavior:none;
 }
 
+/*
+ * AUCUNE BARRE DE DÉFILEMENT VISIBLE. Sur un téléphone, elle ne sert à rien :
+ * les barres du système s'effacent d'elles-mêmes et le geste est direct. Elle
+ * ne se voit que là où elle gêne — en surimpression d'une grille noire, sur le
+ * bord droit qu'on vient justement de rendre symétrique. Le défilement, lui,
+ * reste entier : c'est la barre qu'on retire, pas la course.
+ */
+*{scrollbar-width:none;-ms-overflow-style:none;}
+*::-webkit-scrollbar{width:0;height:0;display:none;}
+
 /* --------------------------------------------------------------- horloge */
 /*
  * La scène occupe l'écran entier, encoche comprise : `viewport-fit=cover` a
