@@ -188,9 +188,10 @@
   color:var(--text);font-family:inherit;font-weight:600;font-size:15px;
 }
 .tab-neuve input:focus{outline:none;border-color:var(--text);}
-.tab-neuve-pied{display:flex;gap:9px;align-items:center;}
+.tab-neuve-pied{display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
 .tab-neuve-pied .bouton{flex:0 0 auto;}
-.tab-neuve-pied .unites{flex:1 1 auto;}
+.tab-neuve-pied .lien{flex:0 0 auto;}
+.tab-neuve-pied .unites{flex:1 1 100%;order:-1;}
 
 /* Le vide : un tableau sans catégorie ne doit pas ressembler à une panne. */
 .tab-vide{

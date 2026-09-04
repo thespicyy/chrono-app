@@ -35,6 +35,7 @@
     neuveNom: document.getElementById('tab-neuve-nom'),
     neuveCreer: document.getElementById('tab-neuve-creer'),
     neuveUnites: document.getElementById('tab-neuve-unites'),
+    neuveFermer: document.getElementById('tab-neuve-fermer'),
     reglages: document.getElementById('tab-reglages')
   };
   if (!el.tableau) return;
@@ -262,16 +263,26 @@
     try { el.neuveNom.focus(); } catch (err) { /* sans gravité */ }
   }
 
+  function fermerNeuve() {
+    el.neuve.hidden = true;
+    el.neuveNom.value = '';
+  }
+
   function creerNeuve() {
     var nom = (el.neuveNom.value || '').trim();
     if (!nom) return;
     U.creerCategorie(nom, uniteNeuve);
-    el.neuve.hidden = true;
-    el.neuveNom.value = '';
+    fermerNeuve();
     dessiner();
   }
 
   el.neuveCreer.addEventListener('click', creerNeuve);
+  // Ouvert par mégarde, le formulaire n'avait aucune sortie : il fallait créer
+  // une catégorie dont on ne voulait pas pour s'en débarrasser.
+  el.neuveFermer.addEventListener('click', fermerNeuve);
+  el.neuveNom.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.preventDefault(); fermerNeuve(); }
+  });
   el.neuveNom.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); creerNeuve(); }
   });
@@ -288,6 +299,22 @@
 
   //: Les tuiles vivantes, par identifiant de catégorie.
   var tuiles = {};
+
+  /*
+   * GEL APRÈS UN REMANIEMENT DE LA GRILLE.
+   *
+   * Créer une catégorie fait apparaître sa tuile **exactement là où était le
+   * bouton « + Catégorie »** — donc sous le doigt qui vient de s'en servir.
+   * Une deuxième tape, ou une tape d'impatience pendant que le formulaire
+   * s'ouvrait, comptait aussitôt une séance : la catégorie semblait naître
+   * à 1.
+   *
+   * Le gel ne protège que le comptage. Fermer, corriger, ouvrir les réglages
+   * restent possibles : ce qu'on empêche, c'est d'écrire dans le journal par
+   * une tape qui visait autre chose.
+   */
+  var GEL_MS = 700;
+  var geleJusqua = 0;
 
   //: La tuile de création, faite une fois pour toutes.
   var tuileNeuve = null;
@@ -328,6 +355,7 @@
     // par minute, et un `+1` finirait par en compter plusieurs.
     bouton.addEventListener('click', function () {
       if (bouton.longAppui) { bouton.longAppui = false; return; }
+      if (Date.now() < geleJusqua) return;
       var c = bouton.categorie;
       if (!c) return;
       if (c.unite === 'temps') { U.ouvrirProgression(); return; }
@@ -413,6 +441,7 @@
 
     var vues = {};
     var precedente = null;
+    var bouge = false;
     etat.categories.forEach(function (c) {
       var noeud = tuiles[c.id];
       if (!noeud) { noeud = tuile(); tuiles[c.id] = noeud; }
@@ -422,7 +451,7 @@
       // nœud le retire du document, ce qui suffirait à faire clignoter ce
       // qu'on vient d'éviter de reconstruire.
       var attendue = precedente ? precedente.nextSibling : el.grille.firstChild;
-      if (attendue !== noeud) el.grille.insertBefore(noeud, attendue);
+      if (attendue !== noeud) { el.grille.insertBefore(noeud, attendue); bouge = true; }
       precedente = noeud;
     });
 
@@ -430,7 +459,12 @@
       if (vues[id]) return;
       if (tuiles[id].parentNode) tuiles[id].parentNode.removeChild(tuiles[id]);
       delete tuiles[id];
+      bouge = true;
     });
+
+    // Une tuile qui apparaît, disparaît ou change de place déplace toutes les
+    // suivantes : ce qui était sous le doigt ne l'est plus.
+    if (bouge) geleJusqua = Date.now() + GEL_MS;
 
     if (el.grille.lastChild !== tuileNeuve) el.grille.appendChild(tuileNeuve);
 
