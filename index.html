@@ -14,13 +14,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>Chrono</title>
-<link rel="manifest" href="manifest.webmanifest?v=34"/>
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=34"/>
-<link rel="icon" type="image/png" href="icon-192.png?v=34"/>
-<link rel="stylesheet" href="flip.css?v=34"/>
-<link rel="stylesheet" href="chrono.css?v=34"/>
-<link rel="stylesheet" href="suivi.css?v=34"/>
-<link rel="stylesheet" href="tableau.css?v=34"/>
+<link rel="manifest" href="manifest.webmanifest?v=35"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=35"/>
+<link rel="icon" type="image/png" href="icon-192.png?v=35"/>
+<link rel="stylesheet" href="flip.css?v=35"/>
+<link rel="stylesheet" href="chrono.css?v=35"/>
+<link rel="stylesheet" href="suivi.css?v=35"/>
+<link rel="stylesheet" href="tableau.css?v=35"/>
 </head>
 <body>
 
@@ -88,7 +88,7 @@
     <p class="panneau-titre">Tu viens de travailler</p>
     <p class="panneau-duree" id="fin-duree">0 min</p>
     <p class="panneau-question">Sur quoi ?</p>
-    <div class="choix" id="fin-choix"></div>
+    <div class="choix sans-barre" id="fin-choix"></div>
 
     <!-- Créer une catégorie sans quitter la question. Sans cela, une session
          portant sur un sujet nouveau ne laissait que deux issues : la ranger
@@ -111,7 +111,7 @@
       <p class="panneau-titre" id="prog-titre">Progression</p>
       <button class="lien" id="prog-fermer" type="button">Fermer</button>
     </div>
-    <div class="prog-corps" id="prog-corps"></div>
+    <div class="prog-corps sans-barre" id="prog-corps"></div>
     <div class="panneau-pied panneau-pied-large">
       <button class="lien" id="prog-categories" type="button">Catégories</button>
       <button class="lien" id="prog-synchro" type="button">Synchronisation</button>
@@ -125,7 +125,7 @@
 <div class="heure-coin" id="heure-coin" hidden></div>
 
 <!-- Signature de branding, comme en pied des autres applications NOIR. -->
-<img class="marque" src="brand.png?v=34" alt="NOIR">
+<img class="marque" src="brand.png?v=35" alt="NOIR">
 
 <!-- La face PORTRAIT : le tableau de progression. L'orientation choisit la
      face, et ce n'est pas un artifice — elle dit la posture. À l'horizontale,
@@ -147,7 +147,7 @@
     </button>
   </header>
 
-  <div class="tab-grille" id="tab-grille"></div>
+  <div class="tab-grille sans-barre" id="tab-grille"></div>
 
   <!-- Créer une catégorie sans quitter le tableau, avec son unité : c'est
        l'unité qui décide du geste, elle ne peut pas se choisir après coup. -->
@@ -169,10 +169,10 @@
   </div>
 </section>
 
-<script src="timer.js?v=34"></script>
-<script src="suivi.js?v=34"></script>
-<script src="suivi-ui.js?v=34"></script>
-<script src="tableau.js?v=34"></script>
-<script src="chrono.js?v=34"></script>
+<script src="timer.js?v=35"></script>
+<script src="suivi.js?v=35"></script>
+<script src="suivi-ui.js?v=35"></script>
+<script src="tableau.js?v=35"></script>
+<script src="chrono.js?v=35"></script>
 </body>
 </html>

@@ -28,6 +28,8 @@
 
 .panneau{
   width:100%;max-width:520px;
+  /* Rogne l'excédent de `.prog-corps` : voir « la géométrie » dans chrono.css. */
+  overflow:hidden;
   /* `max-height` plutôt qu'une hauteur : un panneau court reste centré
      verticalement, un panneau long occupe l'écran sans le dépasser. */
   max-height:100%;margin:auto 0;

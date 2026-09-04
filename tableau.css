@@ -32,6 +32,8 @@
             max(env(safe-area-inset-bottom),14px)
             max(env(safe-area-inset-right),env(safe-area-inset-left),16px);
     gap:14px;
+    /* Rogne l'excédent de `.tab-grille` : voir « la géométrie » dans chrono.css. */
+    overflow:hidden;
   }
 }
 

@@ -48,8 +48,30 @@ body{
  * bord droit qu'on vient justement de rendre symétrique. Le défilement, lui,
  * reste entier : c'est la barre qu'on retire, pas la course.
  */
-*{scrollbar-width:none;-ms-overflow-style:none;}
+*{scrollbar-width:none;scrollbar-color:transparent transparent;
+  -ms-overflow-style:none;}
 *::-webkit-scrollbar{width:0;height:0;display:none;}
+
+/*
+ * Et quand le style ne suffit pas, la géométrie.
+ *
+ * Certains systèmes dessinent leur indicateur de défilement eux-mêmes, par
+ *-dessus la page : aucune de ces règles ne l'atteint, et il reparaît quoi
+ * qu'on déclare. On le met alors hors du cadre — la zone qui défile est
+ * élargie d'une barre, son contenu remis en place par une marge intérieure de
+ * la même largeur, et le parent rogne l'excédent. L'indicateur, qui se dessine
+ * au bord droit de la zone, tombe dans ce qui est rogné.
+ *
+ * Le défilement reste entier, et la mise en page ne bouge pas : ce qui est
+ * ajouté d'un côté est repris de l'autre.
+ */
+:root{--barre:32px;}
+.sans-barre{
+  width:calc(100% + var(--barre));
+  padding-right:var(--barre);
+}
+/* Le rognage doit venir d'un ancêtre, sans quoi l'excédent resterait visible. */
+.rogne{overflow:hidden;}
 
 /* --------------------------------------------------------------- horloge */
 /*
