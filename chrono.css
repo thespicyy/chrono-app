@@ -66,7 +66,16 @@ body{
  * ajouté d'un côté est repris de l'autre.
  */
 :root{--barre:32px;}
-.sans-barre{
+/*
+ * La classe est doublée à dessein : `.sans-barre.sans-barre` l'emporte sur un
+ * sélecteur de classe simple. Les zones qui défilent déclarent leur propre
+ * marge intérieure — `.prog-corps` en avait une de 2 px — et, à spécificité
+ * égale, c'est la feuille chargée en dernier qui gagnait. La largeur était donc
+ * bien élargie, mais le contenu jamais remis en place : les encarts sortaient
+ * du cadre et se faisaient rogner sur la droite. Les deux déclarations forment
+ * un tout, elles doivent l'emporter ensemble.
+ */
+.sans-barre.sans-barre{
   width:calc(100% + var(--barre));
   padding-right:var(--barre);
 }
