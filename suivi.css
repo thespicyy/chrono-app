@@ -211,11 +211,35 @@
 
 /* Sept colonnes, une par jour. Le graphique le plus simple qui montre une
    régularité — ou son absence, ce qui est justement l'information utile. */
-.semaine{display:flex;align-items:flex-end;gap:6px;height:clamp(46px,8vh,78px);}
+.semaine{display:flex;align-items:flex-end;gap:clamp(4px,1.2vw,8px);}
 .barre-jour{
-  flex:1 1 0;
-  display:flex;flex-direction:column;justify-content:flex-end;
-  height:100%;
+  flex:1 1 0;min-width:0;
+  display:flex;flex-direction:column;gap:5px;
+}
+/* La durée, au-dessus de sa barre. */
+.barre-jour b{
+  text-align:center;
+  color:var(--text2);font-weight:700;
+  font-size:clamp(10px,1.5vh,12px);
+  font-variant-numeric:tabular-nums;letter-spacing:-0.03em;
+  white-space:nowrap;
+}
+.barre-jour.travaille b{color:var(--text);}
+/* Le fût porte seul la hauteur, et la barre est un pourcentage de LUI. Prise
+   sur la colonne entière, elle se disputait la place avec l'étiquette et la
+   lettre, qui gagnaient — d'où des barres écrasées.
+
+   Cette hauteur est écrite, et non héritée d'un `flex:1` : un pourcentage ne
+   se résout que contre une hauteur définie. Étiré par le flex, le fût restait
+   indéfini pour son enfant, la barre retombait à zéro, et il n'en subsistait
+   que le liseré de trois pixels du `min-height`.
+
+   Un plancher en pixels, aussi, plutôt qu'une seule part de la hauteur : en
+   paysage, `8vh` ne valait qu'une quarantaine de pixels. Le corps du panneau
+   défile, ces pixels ne coûtent rien à ce qui suit. */
+.barre-jour .fut{
+  height:clamp(88px,18vh,124px);
+  display:flex;align-items:flex-end;
 }
 .barre-jour i{
   display:block;width:100%;
@@ -227,7 +251,6 @@
 .barre-jour u{
   text-decoration:none;text-align:center;
   color:var(--text2);font-weight:600;font-size:clamp(9px,1.4vh,11px);
-  margin-top:5px;
 }
 
 .vide{

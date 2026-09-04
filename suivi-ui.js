@@ -333,6 +333,20 @@
     return n;
   }
 
+  /**
+   * « 3h21 », « 45m ». La forme longue de `formatDuree` — « 3 h 21 » — ne tient
+   * pas dans une colonne large d'un septième de panneau : elle y reviendrait à
+   * la ligne, ou déborderait sur sa voisine.
+   */
+  function compact(ms) {
+    var minutes = Math.round(ms / S.MS_MINUTE);
+    var heures = Math.floor(minutes / 60);
+    var reste = minutes % 60;
+    if (!heures) return minutes + 'm';
+    if (!reste) return heures + 'h';
+    return heures + 'h' + (reste < 10 ? '0' : '') + reste;
+  }
+
   function dessinerProgression() {
     vider(el.progCorps);
     if (vueProgression === 'categories') { el.progTitre.textContent = 'Catégories'; dessinerCategories(); return; }
@@ -381,11 +395,17 @@
     var LETTRES = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     agr.jours.forEach(function (j) {
       var colonne = elem('div', 'barre-jour' + (j.ms > 0 ? ' travaille' : ''));
+      // La durée au-dessus de la barre. Sept rectangles nus se comparent entre
+      // eux, mais ne disent jamais combien : c'est pourtant la seule question
+      // qu'on pose à un tel graphique.
+      colonne.appendChild(elem('b', null, j.ms > 0 ? compact(j.ms) : '·'));
+      var fut = elem('div', 'fut');
       var barre = elem('i');
       // Une part de la plus longue journée : l'échelle absolue rendrait toutes
       // les colonnes minuscules dès qu'une journée sort du lot.
       barre.style.height = (maxi > 0 ? Math.max(3, Math.round(100 * j.ms / maxi)) : 3) + '%';
-      colonne.appendChild(barre);
+      fut.appendChild(barre);
+      colonne.appendChild(fut);
       var d = new Date(j.jour + 'T12:00:00');
       colonne.appendChild(elem('u', null, LETTRES[(d.getDay() + 6) % 7]));
       semaine.appendChild(colonne);
@@ -540,6 +560,52 @@
 
   var etatSync = cfg ? 'attente' : 'absente';
   var enCours = false;
+  //: La cause de la dernière panne, en clair. Sans elle, un échec se constate
+  //: mais ne se répare pas : la console d'un téléphone n'est pas consultable.
+  var raisonSync = '';
+
+  /**
+   * Accepte le code sous ses deux formes : le base64 de TaskMint, ou le contenu
+   * brut de son `sync.json`. Les deux portent les mêmes trois valeurs, et rien
+   * ne se gagne à exiger l'une plutôt que l'autre.
+   */
+  function lireCode(brut) {
+    var texte = String(brut || '').trim();
+    if (!texte) throw new Error('le champ est vide');
+    var lu;
+    try { lu = JSON.parse(texte); }
+    catch (err) {
+      try { lu = JSON.parse(atob(texte.replace(/\s+/g, ''))); }
+      catch (err2) { throw new Error('ce n’est ni le code de TaskMint, ni le contenu de sync.json'); }
+    }
+    var manque = ['u', 'k', 's'].filter(function (c) { return !lu[c]; });
+    if (manque.length) {
+      // Le cas courant : n'avoir collé que le secret. Le code en porte trois.
+      throw new Error('code incomplet, il manque « ' + manque.join(' », « ') +
+                      ' » — le code porte l’adresse (u), la clé (k) et le secret (s)');
+    }
+    return { u: String(lu.u).replace(/\/+$/, ''),
+             k: String(lu.k), s: String(lu.s) };
+  }
+
+  /**
+   * Traduit l'échec d'un appel en une phrase qui dit quoi faire. Un « 401 » nu
+   * n'apprend rien à qui n'écrit pas de requêtes HTTP.
+   */
+  function enClair(err) {
+    var texte = String((err && err.message) || err || '');
+    if (/(401|403)/.test(texte)) {
+      return 'la base a refusé le code (' + texte + ') — secret ou clé erronés.';
+    }
+    if (/404/.test(texte)) {
+      return 'table absente (' + texte + ') — le script SUPABASE.sql n’a pas été ' +
+             'lancé sur ce projet.';
+    }
+    if (/Failed to fetch|NetworkError|Load failed/i.test(texte)) {
+      return 'la base n’a pas répondu — réseau coupé, ou adresse erronée.';
+    }
+    return texte;
+  }
 
   function dessinerSynchro() {
     var etat = elem('div', 'etat-synchro' +
@@ -549,9 +615,13 @@
       absente: 'Aucun appareil couplé — ce suivi ne vit que sur ce téléphone.',
       attente: 'Couplé, synchronisation en attente.',
       ok: 'Couplé et à jour.',
-      panne: 'Couplé, mais la dernière synchronisation a échoué.'
+      panne: 'Couplé, mais la dernière synchronisation a échoué.',
+      // Un code refusé ne couple rien : dire « couplé » ici envoyait chercher
+      // la panne du côté du réseau, alors qu'elle était dans le champ.
+      refus: 'Code refusé — cet appareil n’est pas couplé.'
     }[etatSync] || etatSync));
     el.progCorps.appendChild(etat);
+    if (raisonSync) el.progCorps.appendChild(elem('p', 'note', raisonSync));
 
     var saisie = elem('div', 'saisie');
     var champ = document.createElement('input');
@@ -564,18 +634,17 @@
 
     valider.addEventListener('click', function () {
       try {
-        var lu = JSON.parse(atob(champ.value.trim()));
-        if (!lu.u || !lu.k || !lu.s) throw new Error('code incomplet');
-        lu.u = String(lu.u).replace(/\/+$/, '');
-        cfg = { u: lu.u, k: lu.k, s: lu.s };
+        cfg = lireCode(champ.value);
         ecrire(CLE_SYNC, cfg);
         etatSync = 'attente';
+        raisonSync = '';
         champ.value = '';
         synchroniser();
         dessinerProgression();
       } catch (err) {
         logErreur('code de synchro illisible', err);
-        etatSync = 'panne';
+        etatSync = 'refus';
+        raisonSync = enClair(err);
         dessinerProgression();
       }
     });
@@ -587,6 +656,7 @@
         try { localStorage.removeItem(CLE_SYNC); }
         catch (err) { logErreur('découplage', err); }
         etatSync = 'absente';
+        raisonSync = '';
         dessinerProgression();
       });
       el.progCorps.appendChild(couper);
@@ -836,6 +906,7 @@
       ecrire(CLE_CATEGORIES, categories);
       ecrire(CLE_JOURNAL, journal);
       etatSync = 'ok';
+      raisonSync = '';
       // Maintenant seulement : on sait ce que les autres appareils ont déjà.
       if (!categoriesVives().length) { amorcer(); ecrire(CLE_CATEGORIES, categories); }
       if (!el.voileProg.hidden) dessinerProgression();
@@ -844,6 +915,8 @@
       // local reste la source, et le prochain cycle rattrapera.
       logErreur('synchroniser', err);
       etatSync = 'panne';
+      raisonSync = enClair(err);
+      if (!el.voileProg.hidden) dessinerProgression();
     } finally {
       enCours = false;
     }
