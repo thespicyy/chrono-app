@@ -1,0 +1,197 @@
+/*
+ * Tableau de progression — la face **portrait** de l'application.
+ *
+ * L'orientation choisit la face, et ce n'est pas un artifice : elle dit la
+ * posture. À l'horizontale, l'appareil est *posé* — on le regarde de loin, sans
+ * le toucher, d'où l'horloge à volets qui occupe l'écran. À la verticale, il
+ * est *en main* — on le sort, on tape, on le range. Deux usages, deux mises en
+ * page, aucun bouton à apprendre pour passer de l'une à l'autre.
+ *
+ * Tout ce fichier vit donc sous une requête d'orientation. En paysage, le
+ * tableau n'existe pas : il n'est pas seulement caché, il ne prend aucune
+ * place et ne reçoit aucune tape.
+ */
+
+.tableau{display:none;}
+
+@media (orientation: portrait){
+
+  /* En portrait, la scène et ses commandes disparaissent entièrement. Les
+     masquer sans les retirer laisserait des boutons invisibles sous les
+     tuiles : un bouton qu'on presse sans le voir est pire qu'un bouton
+     absent. */
+  .scene,.barre,.durees,.coin,.heure-coin,.marque{display:none !important;}
+
+  .tableau{
+    display:flex;flex-direction:column;
+    position:fixed;inset:0;
+    /* Marges latérales égales, comme la scène : sur un appareil dont l'encoche
+       n'est que d'un côté, prendre chaque marge de son côté décentre tout. */
+    padding:max(env(safe-area-inset-top),14px)
+            max(env(safe-area-inset-right),env(safe-area-inset-left),16px)
+            max(env(safe-area-inset-bottom),14px)
+            max(env(safe-area-inset-right),env(safe-area-inset-left),16px);
+    gap:14px;
+  }
+}
+
+/* ------------------------------------------------------------- en-tête */
+
+.tab-tete{
+  flex:0 0 auto;
+  display:flex;align-items:center;gap:12px;
+}
+.tab-tete-vue{
+  flex:1 1 auto;min-width:0;
+  display:flex;align-items:center;gap:14px;
+}
+
+.tab-tete .blason{width:64px;height:64px;flex:0 0 auto;}
+.tab-tete .blason img{width:100%;height:100%;object-fit:contain;}
+
+.tab-tete-corps{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px;}
+
+.tab-rang{
+  color:var(--text);font-weight:700;
+  font-size:22px;letter-spacing:-.02em;line-height:1;
+}
+.tab-detail{color:var(--text2);font-weight:600;font-size:13px;}
+
+/* Le bouton des réglages : discret, dans le coin, comme les commandes de la
+   face paysage. Il ouvre les panneaux qui existent déjà. */
+.tab-reglages{
+  flex:0 0 auto;
+  width:40px;height:40px;border-radius:12px;
+  border:1px solid var(--border-strong);background:var(--surface);
+  color:var(--text2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.tab-reglages svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;}
+.tab-reglages:active{color:var(--text);border-color:var(--text);}
+
+/* --------------------------------------------------------------- grille */
+
+/*
+ * Deux colonnes sur un téléphone, davantage sur une tablette. `auto-fill` sur
+ * une largeur minimale plutôt qu'un nombre fixe : c'est la largeur d'une tuile
+ * qui doit rester tapable, pas leur compte qui doit rester joli.
+ */
+.tab-grille{
+  flex:1 1 auto;min-height:0;
+  overflow-y:auto;overscroll-behavior:contain;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
+  gap:12px;
+  align-content:start;
+  padding-bottom:4px;
+}
+
+.tuile{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:14px 12px 12px;
+  border:1px solid var(--border-strong);border-radius:18px;
+  background:var(--surface);
+  color:var(--text);
+  font-family:inherit;
+  cursor:pointer;
+  /* La tuile EST le bouton, sur toute sa surface : viser un « + » de quelques
+     millimètres d'une main occupée est exactement ce qu'on veut éviter. */
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .12s,border-color .12s,background .12s;
+}
+.tuile:active{transform:scale(.97);border-color:var(--text);background:var(--surface2);}
+
+.tuile .blason{width:58px;height:58px;}
+.tuile .blason img{width:100%;height:100%;object-fit:contain;}
+
+.tuile-nom{
+  font-weight:700;font-size:15px;letter-spacing:-.01em;
+  text-align:center;line-height:1.25;
+  /* Deux lignes au plus : au-delà, les tuiles d'une même rangée cessent d'être
+     de la même hauteur et la grille se met à onduler. */
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+.tuile-valeur{color:var(--text3);font-weight:600;font-size:13px;}
+
+.tuile-jauge{width:100%;}
+
+.tuile-pied{
+  display:flex;align-items:baseline;justify-content:space-between;
+  width:100%;gap:8px;
+  color:var(--text2);font-weight:600;font-size:11px;
+}
+
+/* Ce qui a été compté aujourd'hui, en évidence : c'est la seule chose qu'on
+   vient vérifier avant de taper. */
+.tuile-jour{color:var(--text);}
+
+/* La tuile « temps » ne se tape pas pour +1 : elle porte une pastille qui dit
+   ce qu'elle fait, pour qu'on ne s'attende pas au même geste. */
+.tuile-marque{
+  position:absolute;top:9px;right:10px;
+  color:var(--text2);font-weight:700;font-size:10px;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+
+/* La tuile de création : le trait interrompu la distingue sans la reléguer. */
+.tuile-neuve{
+  border-style:dashed;color:var(--text2);
+  justify-content:center;min-height:132px;
+  font-weight:700;font-size:15px;
+}
+
+/* ------------------------------------------------------- barre d'annulation */
+
+/*
+ * Un `+1` de travers agace davantage qu'un oubli : il fausse un compte qu'on
+ * regarde. L'annulation reste donc offerte quelques secondes, sans jamais
+ * demander confirmation au moment du geste — confirmer chaque tape coûterait
+ * cher à chaque fois pour éviter une erreur rare.
+ */
+.tab-annuler{
+  flex:0 0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 14px;
+  border-radius:14px;
+  border:1px solid var(--border-strong);background:var(--surface2);
+  color:var(--text3);font-weight:600;font-size:13px;
+}
+.tab-annuler[hidden]{display:none;}
+.tab-annuler button{
+  flex:0 0 auto;
+  background:none;border:none;padding:4px 0;
+  color:var(--text);font-family:inherit;font-weight:700;font-size:13px;
+  text-decoration:underline;text-underline-offset:4px;
+  cursor:pointer;
+}
+
+/* ------------------------------------------------------ création de tuile */
+
+.tab-neuve{
+  flex:0 0 auto;
+  display:flex;flex-direction:column;gap:10px;
+  padding:14px;
+  border:1px solid var(--border-strong);border-radius:16px;
+  background:var(--surface);
+}
+.tab-neuve[hidden]{display:none;}
+.tab-neuve input{
+  width:100%;
+  padding:11px 13px;border-radius:11px;
+  border:1px solid var(--border-strong);background:var(--surface2);
+  color:var(--text);font-family:inherit;font-weight:600;font-size:15px;
+}
+.tab-neuve input:focus{outline:none;border-color:var(--text);}
+.tab-neuve-pied{display:flex;gap:9px;align-items:center;}
+.tab-neuve-pied .bouton{flex:0 0 auto;}
+.tab-neuve-pied .unites{flex:1 1 auto;}
+
+/* Le vide : un tableau sans catégorie ne doit pas ressembler à une panne. */
+.tab-vide{
+  color:var(--text2);font-weight:600;font-size:14px;line-height:1.5;
+  text-align:center;padding:24px 8px;
+}

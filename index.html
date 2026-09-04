@@ -14,12 +14,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>Chrono</title>
-<link rel="manifest" href="manifest.webmanifest"/>
-<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<link rel="icon" type="image/png" href="icon-192.png"/>
-<link rel="stylesheet" href="flip.css?v=28"/>
-<link rel="stylesheet" href="chrono.css?v=28"/>
-<link rel="stylesheet" href="suivi.css?v=28"/>
+<link rel="manifest" href="manifest.webmanifest?v=33"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=33"/>
+<link rel="icon" type="image/png" href="icon-192.png?v=33"/>
+<link rel="stylesheet" href="flip.css?v=33"/>
+<link rel="stylesheet" href="chrono.css?v=33"/>
+<link rel="stylesheet" href="suivi.css?v=33"/>
+<link rel="stylesheet" href="tableau.css?v=33"/>
 </head>
 <body>
 
@@ -124,11 +125,54 @@
 <div class="heure-coin" id="heure-coin" hidden></div>
 
 <!-- Signature de branding, comme en pied des autres applications NOIR. -->
-<img class="marque" src="brand.png" alt="NOIR">
+<img class="marque" src="brand.png?v=33" alt="NOIR">
 
-<script src="timer.js?v=28"></script>
-<script src="suivi.js?v=28"></script>
-<script src="suivi-ui.js?v=28"></script>
-<script src="chrono.js?v=28"></script>
+<!-- La face PORTRAIT : le tableau de progression. L'orientation choisit la
+     face, et ce n'est pas un artifice — elle dit la posture. À l'horizontale,
+     l'appareil est posé et se regarde ; à la verticale, il est en main et se
+     tape. En paysage, tout ce bloc est retiré de la mise en page, pas
+     seulement masqué : un bouton invisible qu'on presse par mégarde est pire
+     qu'un bouton absent. -->
+<section class="tableau" id="tableau">
+  <!-- Le bouton des réglages est dans le balisage, hors de la zone redessinée :
+       un bouton reconstruit à chaque rendu perdrait son écouteur, ou en
+       gagnerait un de plus à chaque fois. -->
+  <header class="tab-tete">
+    <div class="tab-tete-vue" id="tab-tete-vue"></div>
+    <button class="tab-reglages" id="tab-reglages" type="button"
+            aria-label="Progression et réglages">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="tab-grille" id="tab-grille"></div>
+
+  <!-- Créer une catégorie sans quitter le tableau, avec son unité : c'est
+       l'unité qui décide du geste, elle ne peut pas se choisir après coup. -->
+  <div class="tab-neuve" id="tab-neuve" hidden>
+    <input type="text" id="tab-neuve-nom" maxlength="40"
+           placeholder="Muscu, vélo, lecture…"/>
+    <div class="tab-neuve-pied">
+      <div class="unites" id="tab-neuve-unites"></div>
+      <button class="bouton" id="tab-neuve-creer" type="button">Créer</button>
+    </div>
+  </div>
+
+  <!-- L'annulation d'un `+1`, offerte quelques secondes. Demander confirmation
+       à chaque tape coûterait cher à chaque fois pour éviter une erreur rare ;
+       laisser revenir dessus ne coûte rien tant qu'on ne s'est pas trompé. -->
+  <div class="tab-annuler" id="tab-annuler" hidden>
+    <span id="tab-annuler-texte"></span>
+    <button id="tab-annuler-bouton" type="button">Annuler</button>
+  </div>
+</section>
+
+<script src="timer.js?v=33"></script>
+<script src="suivi.js?v=33"></script>
+<script src="suivi-ui.js?v=33"></script>
+<script src="tableau.js?v=33"></script>
+<script src="chrono.js?v=33"></script>
 </body>
 </html>

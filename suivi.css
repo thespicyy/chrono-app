@@ -296,6 +296,21 @@
 }
 .retirer:active{color:var(--text);}
 
+/* Le choix d'unité d'une catégorie : trois boutons, un seul actif.
+   Un menu déroulant tiendrait moins de place, mais demanderait de l'ouvrir
+   pour lire ce qui est réglé — alors qu'ici l'état se voit sans un geste. */
+.unites{display:flex;gap:6px;flex-wrap:wrap;}
+.unite{
+  flex:0 0 auto;
+  padding:7px 12px;border-radius:999px;
+  border:1px solid var(--border-strong);background:transparent;
+  color:var(--text2);
+  font-family:inherit;font-weight:600;font-size:12px;
+  cursor:pointer;
+  transition:background .14s,border-color .14s,color .14s;
+}
+.unite.active{background:var(--text);border-color:var(--text);color:var(--bg);}
+
 /* Un interrupteur, pas une case à cocher : on le règle en regardant l'écran
    derrière, et sa position se lit sans avoir à décrypter une coche. */
 .bascule{display:flex;align-items:center;gap:12px;}

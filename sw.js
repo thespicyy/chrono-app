@@ -8,7 +8,7 @@
  *
  * Le numéro de version est injecté par tools/build_pwa.py.
  */
-const VERSION = '28';
+const VERSION = '33';
 const CACHE = 'chrono-v' + VERSION;
 
 // La liste est **produite par la construction** (`tools/build_pwa.py`), qui
@@ -43,6 +43,8 @@ const ASSETS = [
   "./suivi-ui.js",
   "./suivi.css",
   "./suivi.js",
+  "./tableau.css",
+  "./tableau.js",
   "./timer.js"
 ];
 

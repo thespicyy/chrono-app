@@ -1,12 +1,19 @@
 /*
- * Suivi du temps de travail — moteur pur, sans DOM ni réseau.
+ * Suivi des progressions — moteur pur, sans DOM ni réseau.
  *
  * Même parti pris que `timer.js`, et pour les mêmes raisons : tout ce qui se
  * calcule est calculé, rien n'est entretenu en double. Le seul état conservé
- * est le **journal des sessions** ; les totaux, les niveaux et les séries en
+ * est le **journal des entrées** ; les totaux, les niveaux et les séries en
  * sont dérivés à chaque lecture. Un compteur « total du jour » rangé à côté
  * finirait par diverger de ses propres données — au premier fuseau franchi, à
- * la première session corrigée, à la première synchro partielle.
+ * la première entrée corrigée, à la première synchro partielle.
+ *
+ * UNE ENTRÉE PORTE UNE VALEUR, PAS UNE DURÉE. L'unité — des minutes, des fois,
+ * des kilomètres — vit sur la **catégorie**, jamais sur l'entrée. Ce n'est pas
+ * un détail d'écriture : c'est ce qui permet d'ajouter une unité sans toucher
+ * au calcul. Une unité ne fait que deux choses, mettre en forme un nombre et
+ * choisir un geste de saisie ; un niveau, lui, coûte *N unités*, que N soit des
+ * minutes ou des séances.
  *
  * Le module est chargeable en Node, donc éprouvable sans navigateur ni
  * appareil : `tests/suivi.test.js`.
@@ -20,45 +27,72 @@
   var MS_MINUTE = 60000;
 
   /*
-   * Échelle des niveaux : **dix heures par palier**, sans accélération.
+   * Échelle des niveaux : **un palier de coût constant**, sans accélération.
    *
-   * Le niveau n s'atteint à `base × (n − 1)` minutes. Une progression
-   * régulière se prévoit de tête — on sait toujours ce qu'il reste à faire, et
-   * dix heures de plus valent autant au niveau 3 qu'au niveau 12. Une courbe
-   * qui s'allonge à chaque palier récompense surtout les débuts et finit par
-   * rendre les niveaux élevés hors d'atteinte ; ce n'est pas ce qu'on veut d'un
-   * suivi de travail, où l'on cherche la régularité plutôt que la performance.
-   *
-   * La même échelle sert aux catégories et au total. Le niveau général monte
-   * donc plus vite, ce qui est juste : il additionne tout ce qu'on a fait.
+   * Le niveau n s'atteint à `coût × (n − 1)`. Une progression régulière se
+   * prévoit de tête — on sait toujours ce qu'il reste à faire, et dix heures de
+   * plus valent autant au niveau 3 qu'au niveau 12. Une courbe qui s'allonge à
+   * chaque palier récompense surtout les débuts et finit par rendre les niveaux
+   * élevés hors d'atteinte ; ce n'est pas ce qu'on veut d'un suivi de vie, où
+   * l'on cherche la régularité plutôt que la performance.
    */
-  var BASE_CATEGORIE = 600;   //: minutes, soit dix heures par niveau
-  var BASE_GLOBALE = 600;     //: la même échelle pour le total
+  var UNITES = {
+    //: Dix heures par niveau. La valeur d'une entrée est en MINUTES.
+    temps: { cout: 600 },
+    //: Vingt séances par niveau.
+    fois: { cout: 20 },
+    //: Deux cents kilomètres par niveau.
+    distance: { cout: 200 }
+  };
 
-  /** Minutes cumulées nécessaires pour atteindre `niveau`. Le niveau 1 est à 0. */
-  function seuil(niveau, base) {
-    return niveau <= 1 ? 0 : base * (niveau - 1);
+  var UNITE_DEFAUT = 'temps';
+
+  //: Compatibilité : le coût d'un niveau de temps, sous son ancien nom.
+  var BASE_CATEGORIE = UNITES.temps.cout;
+
+  /**
+   * L'unité et le coût d'une catégorie, quoi qu'on nous ait passé.
+   *
+   * Les réglages viennent du stockage d'un appareil ou d'une table distante :
+   * une unité inconnue ou un coût nul rendraient tous les niveaux infinis sans
+   * que rien ne le signale. On retombe sur le temps, qui est ce qu'étaient
+   * toutes les catégories avant que l'unité existe.
+   */
+  function reglageDe(nom, reglages) {
+    var brut = (reglages && reglages[nom]) || {};
+    var unite = UNITES[brut.unite] ? brut.unite : UNITE_DEFAUT;
+    var cout = parseFloat(brut.cout);
+    if (!isFinite(cout) || cout <= 0) cout = UNITES[unite].cout;
+    return { unite: unite, cout: cout };
+  }
+
+  /** Valeur cumulée nécessaire pour atteindre `niveau`. Le niveau 1 est à 0. */
+  function seuil(niveau, cout) {
+    return niveau <= 1 ? 0 : cout * (niveau - 1);
   }
 
   /**
-   * Niveau atteint avec `minutes`, et ce qu'il reste avant le suivant.
+   * Niveau atteint avec `valeur`, et ce qu'il reste avant le suivant.
    *
    * Résolu par recherche montante plutôt que par une division : sur un seuil
    * exact, `Math.floor` d'un quotient flottant bascule une fois sur deux du
    * mauvais côté — et les seuils sont précisément les valeurs qu'on regarde.
    */
-  function niveauPour(minutes, base) {
-    var m = Math.max(0, minutes);
+  function niveauPour(valeur, cout) {
+    var v = Math.max(0, valeur);
     var niveau = 1;
-    while (seuil(niveau + 1, base) <= m) niveau += 1;
-    var bas = seuil(niveau, base);
-    var haut = seuil(niveau + 1, base);
-    var dans = m - bas;
+    while (seuil(niveau + 1, cout) <= v) niveau += 1;
+    var bas = seuil(niveau, cout);
+    var haut = seuil(niveau + 1, cout);
+    var dans = v - bas;
     var largeur = haut - bas;
     return {
       niveau: niveau,
+      dansNiveau: dans,
+      pourSuivant: haut - v,
+      // Ancien nom, conservé : les vues l'emploient pour dessiner une jauge.
       minutesDansNiveau: dans,
-      minutesPourSuivant: haut - m,
+      minutesPourSuivant: haut - v,
       // Part du niveau parcourue, dans [0,1] : de quoi dessiner une jauge sans
       // refaire le calcul côté interface.
       fraction: largeur > 0 ? dans / largeur : 0
@@ -71,17 +105,26 @@
    * Ramène n'importe quel objet à une entrée valide, ou rend `null`.
    *
    * Les entrées viennent de deux sources qu'on ne contrôle pas entièrement : le
-   * stockage local d'un appareil et une table distante. Une durée absente ou
+   * stockage local d'un appareil et une table distante. Une valeur absente ou
    * négative, une date illisible, une catégorie vide contamineraient tous les
    * totaux d'un `NaN` sans que rien ne le signale — les agrégats ne lèvent pas,
    * ils affichent.
+   *
+   * `dureeMs` est accepté en repli : c'est la forme qu'avaient toutes les
+   * entrées avant que l'unité existe, et elles sont encore dans la base.
    */
   function normaliser(brut) {
     if (!brut || typeof brut !== 'object') return null;
     var debut = parseFloat(brut.debut);
-    var duree = parseFloat(brut.dureeMs);
     if (!isFinite(debut) || debut <= 0) return null;
-    if (!isFinite(duree) || duree <= 0) return null;
+
+    var valeur = parseFloat(brut.valeur);
+    if (!isFinite(valeur) || valeur <= 0) {
+      var duree = parseFloat(brut.dureeMs);
+      if (!isFinite(duree) || duree <= 0) return null;
+      valeur = duree / MS_MINUTE;
+    }
+
     var categorie = typeof brut.categorie === 'string' ? brut.categorie.trim() : '';
     if (!categorie) return null;
     var id = typeof brut.id === 'string' && brut.id ? brut.id : null;
@@ -89,7 +132,7 @@
     return {
       id: id,
       debut: debut,
-      dureeMs: duree,
+      valeur: valeur,
       categorie: categorie,
       supprime: brut.supprime === true,
       majA: isFinite(parseFloat(brut.majA)) ? parseFloat(brut.majA) : debut
@@ -117,9 +160,9 @@
 
   // ── Dates ───────────────────────────────────────────────────────────────
   //
-  // Toutes les journées sont **locales**. Un suivi de temps de travail se lit
-  // dans le fuseau où l'on a travaillé : une session de 23 h 30 appartient à sa
-  // soirée, pas au lendemain UTC.
+  // Toutes les journées sont **locales**. Un suivi se lit dans le fuseau où
+  // l'on a vécu : une session de 23 h 30 appartient à sa soirée, pas au
+  // lendemain UTC.
 
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
@@ -147,36 +190,88 @@
 
   // ── Agrégats ────────────────────────────────────────────────────────────
 
+  /**
+   * Les entrées comptées en temps, et elles seules.
+   *
+   * « Aujourd'hui : 3 h 21 » ne peut additionner que des minutes. Y verser une
+   * séance de muscu ne donnerait pas un total plus riche, mais un nombre qui ne
+   * veut rien dire — et qui aurait l'air d'en vouloir dire un.
+   */
+  function duTemps(entrees, reglages) {
+    return entrees.filter(function (e) {
+      return reglageDe(e.categorie, reglages).unite === 'temps';
+    });
+  }
+
   function totalDepuis(entrees, borne) {
     return entrees.reduce(function (somme, e) {
-      return e.debut >= borne ? somme + e.dureeMs : somme;
+      return e.debut >= borne ? somme + e.valeur : somme;
     }, 0);
   }
 
-  /** Millisecondes par catégorie, décroissant. */
-  function parCategorie(entrees) {
+  /** Valeur cumulée par catégorie, chacune dans son unité. */
+  function parCategorie(entrees, reglages, maintenant) {
+    var debutDuJour = minuit(isFinite(maintenant) ? maintenant : Date.now());
     var cumul = {};
+    var duJour = {};
     entrees.forEach(function (e) {
-      cumul[e.categorie] = (cumul[e.categorie] || 0) + e.dureeMs;
+      cumul[e.categorie] = (cumul[e.categorie] || 0) + e.valeur;
+      if (e.debut >= debutDuJour) {
+        duJour[e.categorie] = (duJour[e.categorie] || 0) + e.valeur;
+      }
     });
     return Object.keys(cumul).map(function (cle) {
-      var minutes = cumul[cle] / MS_MINUTE;
+      var reglage = reglageDe(cle, reglages);
       return {
         categorie: cle,
-        ms: cumul[cle],
-        minutes: minutes,
-        niveau: niveauPour(minutes, BASE_CATEGORIE)
+        valeur: cumul[cle],
+        aujourdhui: duJour[cle] || 0,
+        unite: reglage.unite,
+        cout: reglage.cout,
+        // Ancien nom : la valeur d'une catégorie de temps, en millisecondes.
+        ms: reglage.unite === 'temps' ? cumul[cle] * MS_MINUTE : 0,
+        niveau: niveauPour(cumul[cle], reglage.cout)
       };
-    }).sort(function (a, b) { return b.ms - a.ms; });
+    }).sort(function (a, b) {
+      // Des heures et des séances ne se comparent pas ; leurs niveaux, si.
+      if (b.niveau.niveau !== a.niveau.niveau) return b.niveau.niveau - a.niveau.niveau;
+      return b.niveau.fraction - a.niveau.fraction;
+    });
   }
 
   /**
-   * Jours consécutifs travaillés, en comptant à rebours depuis aujourd'hui.
+   * Niveau général, en **points de niveau**.
+   *
+   * Chaque catégorie vaut sa propre progression : `(niveau − 1) + fraction`.
+   * Dix heures de SQL valent donc un point, vingt séances de muscu aussi — ce
+   * qui est la seule façon honnête d'additionner des unités incomparables.
+   * Additionner les valeurs brutes reviendrait à dire que 200 km pèsent dix
+   * fois 20 séances ; additionner les seuls niveaux entiers ferait sauter la
+   * jauge par à-coups.
+   *
+   * Sur une catégorie unique de temps, le résultat est **exactement** celui de
+   * l'ancienne formule : la généralisation ne déplace aucun niveau acquis.
+   */
+  function niveauGlobal(categories) {
+    var points = categories.reduce(function (somme, c) {
+      return somme + (c.niveau.niveau - 1) + c.niveau.fraction;
+    }, 0);
+    var entier = Math.floor(points);
+    return {
+      niveau: 1 + entier,
+      points: points,
+      fraction: points - entier,
+      pourSuivant: 1 - (points - entier)
+    };
+  }
+
+  /**
+   * Jours consécutifs comptés, à rebours depuis aujourd'hui.
    *
    * La journée en cours ne rompt pas la série tant qu'elle est vide : à huit
-   * heures du matin, personne n'a encore travaillé, et afficher « série
+   * heures du matin, personne n'a encore rien fait, et afficher « série
    * interrompue » serait faux autant que décourageant. On repart donc de la
-   * veille si aujourd'hui ne compte aucune session.
+   * veille si aujourd'hui ne compte aucune entrée.
    */
   function serie(entrees, maintenant) {
     var jours = {};
@@ -197,37 +292,47 @@
     return compte;
   }
 
-  /** Millisecondes par jour sur les `nombre` derniers jours, du plus ancien. */
+  /** Valeur par jour sur les `nombre` derniers jours, du plus ancien au plus récent. */
   function derniersJours(entrees, maintenant, nombre) {
     var cumul = {};
     entrees.forEach(function (e) {
       var cle = jourDe(e.debut);
-      cumul[cle] = (cumul[cle] || 0) + e.dureeMs;
+      cumul[cle] = (cumul[cle] || 0) + e.valeur;
     });
     var sortie = [];
     var d = new Date(minuit(maintenant));
     d.setDate(d.getDate() - (nombre - 1));
     for (var i = 0; i < nombre; i++) {
       var cle = jourDe(d.getTime());
-      sortie.push({ jour: cle, ms: cumul[cle] || 0 });
+      var valeur = cumul[cle] || 0;
+      sortie.push({ jour: cle, valeur: valeur, ms: valeur * MS_MINUTE });
       d.setDate(d.getDate() + 1);
     }
     return sortie;
   }
 
-  /** Tout ce que la vue « progression » a besoin de savoir, en une passe. */
-  function agregats(journal, maintenant) {
+  /**
+   * Tout ce que les vues ont besoin de savoir, en une passe.
+   *
+   * `reglages` associe un libellé de catégorie à son unité et au coût d'un
+   * niveau. Omis, tout est du temps — ce qu'étaient toutes les catégories
+   * avant que l'unité existe.
+   */
+  function agregats(journal, maintenant, reglages) {
     var entrees = nettoyer(journal);
-    var total = entrees.reduce(function (s, e) { return s + e.dureeMs; }, 0);
+    var temps = duTemps(entrees, reglages);
+    var categories = parCategorie(entrees, reglages, maintenant);
     return {
       sessions: entrees.length,
-      jour: totalDepuis(entrees, minuit(maintenant)),
-      semaine: totalDepuis(entrees, debutSemaine(maintenant)),
-      total: total,
-      categories: parCategorie(entrees),
-      global: niveauPour(total / MS_MINUTE, BASE_GLOBALE),
+      // Les trois totaux de temps sont en MINUTES, et ne comptent que les
+      // catégories mesurées en temps.
+      jour: totalDepuis(temps, minuit(maintenant)),
+      semaine: totalDepuis(temps, debutSemaine(maintenant)),
+      total: temps.reduce(function (s, e) { return s + e.valeur; }, 0),
+      categories: categories,
+      global: niveauGlobal(categories),
       serie: serie(entrees, maintenant),
-      jours: derniersJours(entrees, maintenant, 7)
+      jours: derniersJours(temps, maintenant, 7)
     };
   }
 
@@ -239,9 +344,9 @@
    * ce module reste sans dépendance ni source d'aléa — donc rejouable à
    * l'identique dans un test.
    */
-  function creer(id, debut, dureeMs, categorie) {
+  function creer(id, debut, valeur, categorie) {
     return normaliser({
-      id: id, debut: debut, dureeMs: dureeMs, categorie: categorie,
+      id: id, debut: debut, valeur: valeur, categorie: categorie,
       supprime: false, majA: debut
     });
   }
@@ -260,7 +365,7 @@
 
   // ── Mise en forme ───────────────────────────────────────────────────────
 
-  /** « 3 h 21 », « 45 min », « 0 min ». */
+  /** « 3 h 21 », « 45 min », « 0 min ». Prend des millisecondes. */
   function formatDuree(ms) {
     var minutes = Math.round(Math.max(0, ms) / MS_MINUTE);
     var heures = Math.floor(minutes / 60);
@@ -269,10 +374,25 @@
     return heures + ' h' + (reste ? ' ' + pad2(reste) : '');
   }
 
+  /** Une valeur dans son unité : « 3 h 21 », « 12 fois », « 43 km ». */
+  function formatValeur(valeur, unite) {
+    var v = Math.max(0, parseFloat(valeur) || 0);
+    if (unite === 'fois') return Math.round(v) + ' fois';
+    if (unite === 'distance') {
+      // Un dixième de kilomètre est le dernier chiffre qui veuille dire
+      // quelque chose ; au-delà de cent, il n'en veut plus dire non plus.
+      return (v >= 100 ? Math.round(v) : Math.round(v * 10) / 10) + ' km';
+    }
+    return formatDuree(v * MS_MINUTE);
+  }
+
   return {
     MS_MINUTE: MS_MINUTE,
+    UNITES: UNITES,
+    UNITE_DEFAUT: UNITE_DEFAUT,
     BASE_CATEGORIE: BASE_CATEGORIE,
-    BASE_GLOBALE: BASE_GLOBALE,
+    BASE_GLOBALE: BASE_CATEGORIE,
+    reglageDe: reglageDe,
     seuil: seuil,
     niveauPour: niveauPour,
     normaliser: normaliser,
@@ -281,11 +401,13 @@
     minuit: minuit,
     debutSemaine: debutSemaine,
     parCategorie: parCategorie,
+    niveauGlobal: niveauGlobal,
     serie: serie,
     derniersJours: derniersJours,
     agregats: agregats,
     creer: creer,
     supprimer: supprimer,
-    formatDuree: formatDuree
+    formatDuree: formatDuree,
+    formatValeur: formatValeur
   };
 }));

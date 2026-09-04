@@ -88,12 +88,34 @@
    */
   function amorcer() {
     if (categoriesVives().length) return;
-    var maintenant = Date.now();
-    CATEGORIES_INITIALES.forEach(function (nom) {
-      categories.push({ id: identifiant(), nom: nom, supprime: false,
-                        majA: maintenant, sale: true });
-    });
+    CATEGORIES_INITIALES.forEach(function (nom) { creerCategorie(nom, 'temps'); });
+  }
+
+  /**
+   * Crée une catégorie, ou rend celle qui porte déjà ce nom.
+   *
+   * Retrouver plutôt que créer n'est pas un détail : deux catégories de même
+   * nom couperaient l'historique en deux sans que rien ne le signale — et rien
+   * ne le signalerait, puisque les deux s'afficheraient.
+   */
+  function creerCategorie(nom, unite) {
+    var propre = String(nom || '').trim();
+    if (!propre) return null;
+    var connue = categoriesVives().filter(function (c) {
+      return c.nom.toLowerCase() === propre.toLowerCase();
+    })[0];
+    if (connue) return connue;
+    var neuve = {
+      id: identifiant(), nom: propre,
+      unite: S.UNITES[unite] ? unite : S.UNITE_DEFAUT,
+      // Le coût reste au défaut de l'unité tant que personne ne l'a réglé :
+      // `null` dit « celui de l'unité », et suit donc un changement d'unité.
+      cout: null,
+      supprime: false, majA: Date.now(), sale: true
+    };
+    categories.push(neuve);
     ecrire(CLE_CATEGORIES, categories);
+    return neuve;
   }
 
   /**
@@ -122,6 +144,39 @@
     return trouvee ? trouvee.nom : id;
   }
 
+  function categorieDe(id) {
+    return categories.filter(function (c) { return c.id === id; })[0] || null;
+  }
+
+  /** L'unité d'une catégorie, par son identifiant. Le temps, à défaut. */
+  function uniteDe(id) {
+    var c = categorieDe(id);
+    return (c && S.UNITES[c.unite]) ? c.unite : S.UNITE_DEFAUT;
+  }
+
+  /**
+   * L'unité et le coût de chaque catégorie, **par libellé** : c'est la forme
+   * qu'attend le moteur, qui agrège par nom et ne connaît pas les identifiants.
+   */
+  function reglages() {
+    var carte = {};
+    categories.forEach(function (c) {
+      carte[c.nom] = { unite: c.unite, cout: c.cout };
+    });
+    return carte;
+  }
+
+  /**
+   * Les agrégats du moment.
+   *
+   * Passer par une fonction plutôt que d'appeler `S.agregats` à cinq endroits :
+   * les réglages sont un troisième argument facile à oublier, et l'oublier ne
+   * lève rien — tout redeviendrait simplement du temps, en silence.
+   */
+  function bilan() {
+    return S.agregats(journalAvecNoms(), Date.now(), reglages());
+  }
+
   // ── Éléments ────────────────────────────────────────────────────────────
   var el = {
     voileFin: document.getElementById('voile-fin'),
@@ -148,6 +203,11 @@
              s.dureeMs >= DUREE_MINIMALE_MS;
     });
   }
+
+  //: Ce qui veut être prévenu d'un changement du journal ou des catégories —
+  //: la face portrait, aujourd'hui. Déclaré ici, et non près de son usage : la
+  //: première synchronisation peut aboutir avant la fin du fichier.
+  var abonnes = [];
 
   var attente = fileAttente();
   var vueProgression = 'progression';   // 'progression' | 'categories' | 'synchro'
@@ -198,7 +258,7 @@
   }
 
   function dessinerChoix() {
-    var agr = S.agregats(journalAvecNoms(), Date.now());
+    var agr = bilan();
     var parNom = {};
     agr.categories.forEach(function (c) { parNom[c.categorie] = c; });
 
@@ -240,17 +300,10 @@
    * nom couperaient l'historique en deux sans que rien ne le signale.
    */
   function creerEtCompter() {
-    var nom = (el.finNouvelle.value || '').trim();
-    if (!nom) return;
-    var connue = categoriesVives().filter(function (c) {
-      return c.nom.toLowerCase() === nom.toLowerCase();
-    })[0];
-    if (!connue) {
-      connue = { id: identifiant(), nom: nom, supprime: false,
-                 majA: Date.now(), sale: true };
-      categories.push(connue);
-      ecrire(CLE_CATEGORIES, categories);
-    }
+    // La question ne se pose qu'après un chronomètre : la catégorie créée là
+    // se compte forcément en temps.
+    var connue = creerCategorie(el.finNouvelle.value, 'temps');
+    if (!connue) return;
     el.finSaisie.hidden = true;
     el.finNouvelle.value = '';
     compter(connue);
@@ -273,11 +326,15 @@
   function compter(categorie) {
     if (!attente.length) return;
     var session = attente[0];
-    var entree = S.creer(identifiant(), session.debut, session.dureeMs, categorie.id);
+    // La file d'attente vient toujours d'un chronomètre : sa valeur est un
+    // temps, converti en minutes — l'unité dans laquelle le moteur compte.
+    var entree = S.creer(identifiant(), session.debut,
+                         session.dureeMs / S.MS_MINUTE, categorie.id);
     if (entree) {
       entree.sale = true;
       journal.push(entree);
       ecrire(CLE_JOURNAL, journal);
+      prevenir();
       synchroniser();
     }
     defilerAttente();
@@ -353,7 +410,7 @@
     if (vueProgression === 'synchro') { el.progTitre.textContent = 'Synchronisation'; dessinerSynchro(); return; }
     el.progTitre.textContent = 'Progression';
 
-    var agr = S.agregats(journalAvecNoms(), Date.now());
+    var agr = bilan();
 
     if (!agr.sessions) {
       el.progCorps.appendChild(elem('p', 'vide',
@@ -362,9 +419,13 @@
       return;
     }
 
+    // Les trois totaux de temps sont en minutes, et ne comptent que les
+    // catégories mesurées en temps : additionner des séances de muscu à des
+    // heures de SQL ne donnerait pas un total plus riche, mais un nombre qui
+    // n'a pas de sens et qui aurait l'air d'en avoir un.
     var totaux = elem('div', 'totaux');
-    [['Aujourd\'hui', S.formatDuree(agr.jour)],
-     ['Cette semaine', S.formatDuree(agr.semaine)],
+    [['Aujourd\'hui', S.formatDuree(agr.jour * S.MS_MINUTE)],
+     ['Cette semaine', S.formatDuree(agr.semaine * S.MS_MINUTE)],
      ['Série', agr.serie + (agr.serie > 1 ? ' jours' : ' jour')]
     ].forEach(function (paire) {
       var carte = elem('div', 'total');
@@ -381,11 +442,15 @@
     var cote = elem('div', 'general-cote');
     cote.appendChild(elem('div', 'general-rang', 'Niveau ' + agr.global.niveau));
     cote.appendChild(elem('div', 'general-nom',
-                          S.formatDuree(agr.total) + ' au total'));
+                          S.formatDuree(agr.total * S.MS_MINUTE) + ' au total'));
     cote.appendChild(jauge(agr.global.fraction));
+    // Le reste général s'exprime en pourcentage, et non en heures : il
+    // additionne des progressions d'unités différentes — dix heures de SQL et
+    // vingt séances de muscu valent chacune un point. Le dire en heures serait
+    // faux dès la deuxième catégorie.
     cote.appendChild(elem('div', 'general-reste',
-      S.formatDuree(agr.global.minutesPourSuivant * S.MS_MINUTE) +
-      ' avant le niveau ' + (agr.global.niveau + 1)));
+      Math.round(agr.global.fraction * 100) + ' % du niveau ' +
+      (agr.global.niveau + 1)));
     general.appendChild(cote);
     el.progCorps.appendChild(general);
 
@@ -420,12 +485,13 @@
       var corps = elem('div', 'ligne-corps');
       var tete = elem('div', 'ligne-tete');
       tete.appendChild(elem('span', 'ligne-nom', c.categorie));
-      tete.appendChild(elem('span', 'ligne-temps', S.formatDuree(c.ms)));
+      tete.appendChild(elem('span', 'ligne-temps',
+                           S.formatValeur(c.valeur, c.unite)));
       corps.appendChild(tete);
       corps.appendChild(jauge(c.niveau.fraction));
       corps.appendChild(elem('div', 'ligne-pied',
         'Niveau ' + c.niveau.niveau + ' · ' +
-        S.formatDuree(c.niveau.minutesPourSuivant * S.MS_MINUTE) +
+        S.formatValeur(c.niveau.pourSuivant, c.unite) +
         ' avant le ' + (c.niveau.niveau + 1)));
       ligne.appendChild(corps);
       lignes.appendChild(ligne);
@@ -456,6 +522,43 @@
     return boite;
   }
 
+  //: Le libellé de chaque unité, et le geste qu'elle implique. L'ordre est
+  //: celui de leur fréquence : la plupart des catégories se comptent en fois.
+  var LIBELLES_UNITE = [
+    ['fois', 'Fois'],
+    ['temps', 'Temps'],
+    ['distance', 'Kilomètres']
+  ];
+
+  /**
+   * Le choix d'unité d'une catégorie : trois boutons, un seul actif.
+   *
+   * Un menu déroulant tiendrait moins de place, mais demanderait deux gestes
+   * pour lire ce qui est réglé — alors qu'ici l'état se voit sans rien ouvrir.
+   */
+  function choixUnite(categorie, apres) {
+    var barre = elem('div', 'unites');
+    LIBELLES_UNITE.forEach(function (paire) {
+      var actuelle = S.UNITES[categorie.unite] ? categorie.unite : S.UNITE_DEFAUT;
+      var bouton = elem('button', 'unite' + (paire[0] === actuelle ? ' active' : ''),
+                        paire[1]);
+      bouton.type = 'button';
+      bouton.addEventListener('click', function () {
+        if (categorie.unite === paire[0]) return;
+        categorie.unite = paire[0];
+        // Le coût repart au défaut de la nouvelle unité : garder « 600 » en
+        // passant du temps aux fois demanderait six cents séances par niveau.
+        categorie.cout = null;
+        categorie.majA = Date.now();
+        categorie.sale = true;
+        ecrire(CLE_CATEGORIES, categories);
+        if (apres) apres();
+      });
+      barre.appendChild(bouton);
+    });
+    return barre;
+  }
+
   function jauge(fraction) {
     var j = elem('div', 'jauge');
     var dedans = elem('span');
@@ -478,15 +581,7 @@
     el.progCorps.appendChild(saisie);
 
     function ajouter() {
-      var nom = champ.value.trim();
-      if (!nom) return;
-      var existe = categoriesVives().some(function (c) {
-        return c.nom.toLowerCase() === nom.toLowerCase();
-      });
-      if (existe) { champ.value = ''; return; }
-      categories.push({ id: identifiant(), nom: nom, supprime: false,
-                        majA: Date.now(), sale: true });
-      ecrire(CLE_CATEGORIES, categories);
+      if (!creerCategorie(champ.value, 'temps')) return;
       synchroniser();
       champ.value = '';
       dessinerProgression();
@@ -497,7 +592,7 @@
     });
 
     var lignes = elem('div', 'lignes');
-    var agr = S.agregats(journalAvecNoms(), Date.now());
+    var agr = bilan();
     var parNom = {};
     agr.categories.forEach(function (c) { parNom[c.categorie] = c; });
 
@@ -531,7 +626,7 @@
 
       var compte = parNom[categorie.nom];
       tete.appendChild(elem('span', 'ligne-temps',
-                            compte ? S.formatDuree(compte.ms) : '—'));
+        compte ? S.formatValeur(compte.valeur, compte.unite) : '—'));
 
       var retirer = elem('button', 'retirer', '×');
       retirer.setAttribute('aria-label', 'Retirer ' + categorie.nom);
@@ -544,8 +639,11 @@
         dessinerProgression();
       });
       tete.appendChild(retirer);
-
       ligne.appendChild(tete);
+      ligne.appendChild(choixUnite(categorie, function () {
+        synchroniser();
+        dessinerProgression();
+      }));
       lignes.appendChild(ligne);
     });
     el.progCorps.appendChild(lignes);
@@ -553,7 +651,8 @@
     el.progCorps.appendChild(elem('p', 'note',
       'Retirer une catégorie ne supprime pas le temps déjà compté : il reste ' +
       'dans l’historique. Renommer non plus — le journal retient la catégorie, ' +
-      'pas son nom.'));
+      'pas son nom. Changer d’unité, en revanche, relit tout l’historique de la ' +
+      'catégorie dans la nouvelle : à ne faire que sur une catégorie encore vide.'));
   }
 
   // ── Synchronisation ─────────────────────────────────────────────────────
@@ -600,6 +699,12 @@
     if (/404/.test(texte)) {
       return 'table absente (' + texte + ') — le script SUPABASE.sql n’a pas été ' +
              'lancé sur ce projet.';
+    }
+    // PostgREST nomme la colonne qu'il ne trouve pas : c'est le symptôme exact
+    // d'une base restée en arrière d'une version de l'application.
+    if (/400/.test(texte) || /column/i.test(texte)) {
+      return 'la base n’a pas toutes les colonnes attendues (' + texte + ') — ' +
+             'lance SUPABASE-progression.sql dans Supabase.';
     }
     if (/Failed to fetch|NetworkError|Load failed/i.test(texte)) {
       return 'la base n’a pas répondu — réseau coupé, ou adresse erronée.';
@@ -830,29 +935,47 @@
     };
   }
 
+  /*
+   * `duree_ms` EST ENCORE ÉCRIT, ET C'EST VOULU. La colonne est obligatoire, et
+   * un appareil resté en ancienne version ne connaît qu'elle. On y met donc le
+   * temps quand c'en est, et **zéro** pour une séance ou des kilomètres — que
+   * l'ancien code écarte déjà comme une durée invalide. Il ignore ainsi ce
+   * qu'il ne saurait pas afficher, au lieu de compter une séance de muscu pour
+   * zéro minute de travail.
+   */
   function versDistant(table, lignes) {
     if (table === TABLE_SESSIONS) {
       return lignes.map(function (e) {
-        return { id: e.id, debut: e.debut, duree_ms: e.dureeMs,
+        var temps = uniteDe(e.categorie) === 'temps';
+        return { id: e.id, debut: e.debut,
+                 valeur: e.valeur,
+                 duree_ms: temps ? Math.round(e.valeur * S.MS_MINUTE) : 0,
                  categorie: e.categorie, supprime: !!e.supprime, maj_a: e.majA };
       });
     }
     return lignes.map(function (c) {
-      return { id: c.id, nom: c.nom, supprime: !!c.supprime, maj_a: c.majA };
+      return { id: c.id, nom: c.nom, unite: c.unite || null, cout: c.cout || null,
+               supprime: !!c.supprime, maj_a: c.majA };
     });
   }
 
   function depuisDistant(table, lignes) {
     if (table === TABLE_SESSIONS) {
       return lignes.map(function (r) {
-        return { id: r.id, debut: Number(r.debut), dureeMs: Number(r.duree_ms),
+        var valeur = parseFloat(r.valeur);
+        // Une ligne écrite avant que l'unité existe n'a pas de `valeur` : sa
+        // durée en millisecondes en tient lieu.
+        if (!isFinite(valeur) || valeur <= 0) valeur = Number(r.duree_ms) / S.MS_MINUTE;
+        return { id: r.id, debut: Number(r.debut), valeur: valeur,
                  categorie: r.categorie, supprime: !!r.supprime,
                  majA: Number(r.maj_a), sale: false };
       });
     }
     return lignes.map(function (r) {
-      return { id: r.id, nom: r.nom, supprime: !!r.supprime,
-               majA: Number(r.maj_a), sale: false };
+      return { id: r.id, nom: r.nom,
+               unite: S.UNITES[r.unite] ? r.unite : S.UNITE_DEFAUT,
+               cout: isFinite(parseFloat(r.cout)) ? parseFloat(r.cout) : null,
+               supprime: !!r.supprime, majA: Number(r.maj_a), sale: false };
     });
   }
 
@@ -878,6 +1001,23 @@
     return Object.keys(par).map(function (cle) { return par[cle]; });
   }
 
+  /**
+   * Le motif d'un refus, tel que la base le donne.
+   *
+   * Un « 400 » nu ne dit rien ; le corps de la réponse, lui, nomme la colonne
+   * manquante ou la contrainte violée. C'est la seule information qui permette
+   * de réparer sans brancher un ordinateur sur le téléphone.
+   */
+  async function motif(reponse) {
+    try {
+      var texte = await reponse.text();
+      var lu = JSON.parse(texte);
+      return lu.message || lu.hint || texte.slice(0, 120);
+    } catch (err) {
+      return '';
+    }
+  }
+
   async function echanger(table, locales) {
     var sales = locales.filter(function (l) { return l.sale; });
     if (sales.length) {
@@ -887,12 +1027,18 @@
                                { 'Prefer': 'resolution=merge-duplicates' }),
         body: JSON.stringify(versDistant(table, sales))
       });
-      if (!envoi.ok) throw new Error('envoi ' + table + ' : ' + envoi.status);
+      if (!envoi.ok) {
+        throw new Error('envoi ' + table + ' : ' + envoi.status + ' — ' +
+                        await motif(envoi));
+      }
       sales.forEach(function (l) { l.sale = false; });
     }
     var lecture = await fetch(cfg.u + '/rest/v1/' + table + '?select=*',
                               { headers: entetes() });
-    if (!lecture.ok) throw new Error('lecture ' + table + ' : ' + lecture.status);
+    if (!lecture.ok) {
+      throw new Error('lecture ' + table + ' : ' + lecture.status + ' — ' +
+                      await motif(lecture));
+    }
     return fusionner(locales, depuisDistant(table, await lecture.json()));
   }
 
@@ -907,6 +1053,7 @@
       ecrire(CLE_JOURNAL, journal);
       etatSync = 'ok';
       raisonSync = '';
+      prevenir();
       // Maintenant seulement : on sait ce que les autres appareils ont déjà.
       if (!categoriesVives().length) { amorcer(); ecrire(CLE_CATEGORIES, categories); }
       if (!el.voileProg.hidden) dessinerProgression();
@@ -945,12 +1092,97 @@
     el.voileProg.hidden = false;
   }
 
+  /*
+   * Ce que la face portrait consomme.
+   *
+   * Elle ne touche ni au stockage ni au réseau : elle demande un état, elle
+   * pose un geste. Deux fichiers qui écriraient tous deux dans `localStorage`
+   * finiraient par s'écraser l'un l'autre — et le journal est la seule chose
+   * qu'on ne peut pas se permettre de perdre.
+   */
+  function prevenir() {
+    abonnes.forEach(function (fn) {
+      try { fn(); } catch (err) { logErreur('abonné', err); }
+    });
+  }
+
+  /** L'état complet du tableau : les catégories vivantes, garnies de leur bilan. */
+  function etat() {
+    var agr = bilan();
+    var parNom = {};
+    agr.categories.forEach(function (c) { parNom[c.categorie] = c; });
+    return {
+      global: agr.global,
+      serie: agr.serie,
+      jour: agr.jour,
+      total: agr.total,
+      sessions: agr.sessions,
+      categories: categoriesVives().map(function (c) {
+        var compte = parNom[c.nom];
+        var reglage = S.reglageDe(c.nom, reglages());
+        return {
+          id: c.id, nom: c.nom, unite: reglage.unite, cout: reglage.cout,
+          valeur: compte ? compte.valeur : 0,
+          aujourdhui: compte ? compte.aujourdhui : 0,
+          niveau: compte ? compte.niveau : S.niveauPour(0, reglage.cout)
+        };
+      })
+    };
+  }
+
+  /**
+   * Compte `valeur` de plus sur une catégorie, tout de suite.
+   *
+   * Écrit avant de rendre la main, et rend l'identifiant de l'entrée : c'est
+   * lui qui permet d'annuler. Le geste doit être acquis même si la page
+   * disparaît dans la seconde — un `+1` perdu est exactement ce qui fait
+   * abandonner ce genre d'outil.
+   */
+  function ajouterEntree(idCategorie, valeur) {
+    var categorie = categorieDe(idCategorie);
+    if (!categorie || categorie.supprime) return null;
+    var entree = S.creer(identifiant(), Date.now(), valeur, categorie.id);
+    if (!entree) return null;
+    entree.sale = true;
+    journal.push(entree);
+    ecrire(CLE_JOURNAL, journal);
+    prevenir();
+    synchroniser();
+    return entree.id;
+  }
+
+  /**
+   * Défait une entrée. Marquée supprimée, jamais effacée : la suppression doit
+   * atteindre les autres appareils, et une ligne absente ne se propage pas.
+   */
+  function retirerEntree(id) {
+    var connue = journal.filter(function (e) { return e.id === id; })[0];
+    if (!connue) return false;
+    journal = S.supprimer(journal, id, Date.now());
+    journal.forEach(function (e) { if (e.id === id) e.sale = true; });
+    ecrire(CLE_JOURNAL, journal);
+    prevenir();
+    synchroniser();
+    return true;
+  }
+
   window.SuiviUI = {
     proposer: proposer,
     ouvrirProgression: ouvrirProgression,
     ouvrirSynchro: ouvrirSynchro,
     fermer: function () { fermerFin(); fermerProgression(); },
     ouvert: ouvert,
+    // ── Ce que consomme la face portrait ──
+    etat: etat,
+    ajouter: ajouterEntree,
+    retirer: retirerEntree,
+    creerCategorie: function (nom, unite) {
+      var c = creerCategorie(nom, unite);
+      if (c) { prevenir(); synchroniser(); }
+      return c;
+    },
+    unites: LIBELLES_UNITE,
+    abonner: function (fn) { abonnes.push(fn); },
     // Exposés pour les tests, qui doivent pouvoir observer sans passer par le
     // stockage : lire `localStorage` ne dirait rien de ce qui est affiché.
     _journal: function () { return journal; },
