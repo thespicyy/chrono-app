@@ -42,6 +42,11 @@
   //: pénible et le journal faux.
   var DUREE_MINIMALE_MS = 60000;
 
+  //: Combien de temps une suppression reste à confirmer. Assez pour répondre
+  //: sans se presser, assez court pour qu'une croix pressée par erreur soit
+  //: redevenue une croix quand on y revient.
+  var DELAI_CONFIRMATION_MS = 5000;
+
   //: Premières catégories d'un appareil neuf. Elles se renomment et se
   //: suppriment : c'est une amorce, pas une liste imposée.
   var CATEGORIES_INITIALES = ['SQL', 'Pandas', 'Python'];
@@ -628,13 +633,37 @@
       tete.appendChild(elem('span', 'ligne-temps',
         compte ? S.formatValeur(compte.valeur, compte.unite) : '—'));
 
+      /*
+       * SUPPRIMER DEMANDE DEUX GESTES. Une croix de quelques millimètres, à
+       * côté d'un champ de texte qu'on vient d'éditer, s'atteint par mégarde —
+       * et le geste était immédiat et définitif. La croix devient donc une
+       * question, et redevient une croix si on ne répond pas : rien à annuler,
+       * rien à confirmer quand on ne voulait rien supprimer.
+       */
       var retirer = elem('button', 'retirer', '×');
       retirer.setAttribute('aria-label', 'Retirer ' + categorie.nom);
+      var attenteConfirmation = null;
+
+      function rendreLaCroix() {
+        if (attenteConfirmation) clearTimeout(attenteConfirmation);
+        attenteConfirmation = null;
+        retirer.className = 'retirer';
+        retirer.textContent = '×';
+      }
+
       retirer.addEventListener('click', function () {
+        if (!attenteConfirmation) {
+          retirer.className = 'retirer retirer-confirme';
+          retirer.textContent = 'Supprimer ?';
+          attenteConfirmation = setTimeout(rendreLaCroix, DELAI_CONFIRMATION_MS);
+          return;
+        }
+        rendreLaCroix();
         categorie.supprime = true;
         categorie.majA = Date.now();
         categorie.sale = true;
         ecrire(CLE_CATEGORIES, categories);
+        prevenir();
         synchroniser();
         dessinerProgression();
       });
@@ -1166,6 +1195,23 @@
     return true;
   }
 
+  /**
+   * Les dernières entrées d'une catégorie, de la plus récente à la plus
+   * ancienne. Les supprimées sont écartées : elles n'existent que pour que la
+   * suppression atteigne les autres appareils.
+   */
+  function entreesDe(idCategorie, limite) {
+    return journal
+      .filter(function (e) {
+        return e.categorie === idCategorie && !e.supprime;
+      })
+      .map(function (e) {
+        return { id: e.id, quand: e.debut, valeur: e.valeur };
+      })
+      .sort(function (a, b) { return b.quand - a.quand; })
+      .slice(0, limite || 20);
+  }
+
   window.SuiviUI = {
     proposer: proposer,
     ouvrirProgression: ouvrirProgression,
@@ -1174,6 +1220,7 @@
     ouvert: ouvert,
     // ── Ce que consomme la face portrait ──
     etat: etat,
+    entrees: entreesDe,
     ajouter: ajouterEntree,
     retirer: retirerEntree,
     creerCategorie: function (nom, unite) {

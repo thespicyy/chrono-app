@@ -298,6 +298,15 @@
 }
 .retirer:active{color:var(--text);}
 
+/* La croix devenue question : elle s'élargit et se signale, pour qu'on ne la
+   confonde pas avec l'état ordinaire du bouton. */
+.retirer-confirme{
+  width:auto;padding:0 12px;border-radius:999px;
+  border:1px solid var(--text);background:var(--text);color:var(--bg);
+  font-size:12px;font-weight:700;white-space:nowrap;
+}
+.retirer-confirme:active{color:var(--bg);}
+
 /* Le choix d'unité d'une catégorie : trois boutons, un seul actif.
    Un menu déroulant tiendrait moins de place, mais demanderait de l'ouvrir
    pour lire ce qui est réglé — alors qu'ici l'état se voit sans un geste. */

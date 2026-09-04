@@ -8,7 +8,7 @@
  *
  * Le numéro de version est injecté par tools/build_pwa.py.
  */
-const VERSION = '36';
+const VERSION = '37';
 const CACHE = 'chrono-v' + VERSION;
 
 // La liste est **produite par la construction** (`tools/build_pwa.py`), qui
