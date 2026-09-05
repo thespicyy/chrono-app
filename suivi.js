@@ -447,6 +447,23 @@
     return heures + ' h' + (reste ? ' ' + pad2(reste) : '');
   }
 
+  /**
+   * L'effort total, en mois de rythme visé : « 29 mois d'effort ».
+   *
+   * C'est l'unité commune du niveau général, et la seule façon de rendre ce
+   * niveau vérifiable : sans elle, il tombe d'un calcul qu'on ne peut pas
+   * refaire de tête, et un total qui surprend ne peut être ni confirmé ni
+   * contesté.
+   */
+  function formatEffort(mois) {
+    var m = Math.max(0, parseFloat(mois) || 0);
+    if (m < 1) return Math.round(m * 30) + ' jours d’effort';
+    if (m < 24) return Math.round(m) + ' mois d’effort';
+    var annees = Math.floor(m / 12);
+    var reste = Math.round(m - annees * 12);
+    return annees + ' ans' + (reste ? ' ' + reste + ' mois' : '') + ' d’effort';
+  }
+
   /** Une valeur dans son unité : « 3 h 21 », « 12 fois », « 43 km ». */
   function formatValeur(valeur, unite) {
     var v = Math.max(0, parseFloat(valeur) || 0);
@@ -486,6 +503,7 @@
     creer: creer,
     supprimer: supprimer,
     formatDuree: formatDuree,
-    formatValeur: formatValeur
+    formatValeur: formatValeur,
+    formatEffort: formatEffort
   };
 }));

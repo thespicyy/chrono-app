@@ -455,12 +455,16 @@
     majBlason(p.blason, etat.global.niveau);
     texte(p.rang, 'Niveau ' + etat.global.niveau);
     largeurJauge(p.jauge, etat.global.fraction);
+    // L'effort total est écrit, et pas seulement le niveau qu'il donne : un
+    // niveau général qui surprend doit pouvoir être vérifié. Sans ce nombre, il
+    // tombe d'un calcul qu'on ne peut ni refaire ni contester.
     texte(p.detail,
-      (etat.serie > 0
-        ? etat.serie + (etat.serie > 1 ? ' jours de suite' : ' jour')
-        : 'Aucune série en cours') +
+      S.formatEffort(etat.global.mois) +
       ' · ' + Math.round(etat.global.fraction * 100) + ' % du niveau ' +
-      (etat.global.niveau + 1));
+      (etat.global.niveau + 1) +
+      (etat.serie > 0
+        ? ' · ' + etat.serie + (etat.serie > 1 ? ' jours de suite' : ' jour')
+        : ''));
   }
 
   function dessiner() {

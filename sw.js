@@ -8,7 +8,7 @@
  *
  * Le numéro de version est injecté par tools/build_pwa.py.
  */
-const VERSION = '45';
+const VERSION = '47';
 const CACHE = 'chrono-v' + VERSION;
 
 // La liste est **produite par la construction** (`tools/build_pwa.py`), qui
@@ -66,10 +66,38 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+/*
+ * TOUJOURS REVALIDER CE QUI VIENT DE CHEZ NOUS.
+ *
+ * « Réseau d'abord » ne suffisait pas : le `fetch` d'un service worker passe
+ * lui aussi par le cache HTTP du navigateur, et GitHub Pages sert ses pages
+ * avec une durée de vie. Une application rouverte dix fois pouvait donc
+ * continuer de recevoir un `index.html` périmé — qui réclame à son tour les
+ * scripts sous leur ancien numéro de version, tous en cache. Le correctif
+ * n'arrivait jamais, sans que rien ne le signale.
+ *
+ * `no-cache` ne désactive pas le cache : il le fait revalider auprès du
+ * serveur. Une version inchangée coûte un « 304 » et rien de plus.
+ *
+ * Seules les requêtes de même origine sont réécrites. Reconstruire celles qui
+ * partent vers Supabase leur ferait perdre leurs en-têtes — dont le secret de
+ * synchronisation, sans lequel la base ne répond rien.
+ */
+function aRevalider(requete) {
+  if (requete.url.indexOf(self.location.origin) !== 0) return requete;
+  return new Request(requete.url, {
+    cache: 'no-cache',
+    credentials: requete.credentials,
+    headers: requete.headers,
+    mode: requete.mode === 'navigate' ? 'same-origin' : requete.mode,
+    redirect: requete.redirect
+  });
+}
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request)
+    fetch(aRevalider(e.request))
       .then((reponse) => {
         // On ne met en cache que ce qui est réellement servi : une réponse
         // d'erreur mise en cache se rejouerait hors ligne comme si de rien.

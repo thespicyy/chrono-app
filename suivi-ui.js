@@ -463,7 +463,7 @@
     var cote = elem('div', 'general-cote');
     cote.appendChild(elem('div', 'general-rang', 'Niveau ' + agr.global.niveau));
     cote.appendChild(elem('div', 'general-nom',
-                          S.formatDuree(agr.total * S.MS_MINUTE) + ' au total'));
+                          S.formatEffort(agr.global.mois)));
     cote.appendChild(jauge(agr.global.fraction));
     // Le reste général s'exprime en pourcentage, et non en heures : il
     // additionne des progressions d'unités différentes — dix heures de SQL et
@@ -471,7 +471,8 @@
     // faux dès la deuxième catégorie.
     cote.appendChild(elem('div', 'general-reste',
       Math.round(agr.global.fraction * 100) + ' % du niveau ' +
-      (agr.global.niveau + 1)));
+      (agr.global.niveau + 1) + ' · ' +
+      S.formatDuree(agr.total * S.MS_MINUTE) + ' chronométrées'));
     general.appendChild(cote);
     el.progCorps.appendChild(general);
 
@@ -840,6 +841,15 @@
     }[etatSync] || etatSync));
     el.progCorps.appendChild(etat);
     if (raisonSync) el.progCorps.appendChild(elem('p', 'note', raisonSync));
+
+    // La version installée, en tête du panneau. « Suis-je à jour ? » n'avait
+    // aucune réponse dans l'application : on comparait des symptômes, et une
+    // version périmée se confondait avec un défaut de calcul.
+    var balise = document.querySelector('meta[name="chrono-version"]');
+    var version = balise ? balise.getAttribute('content') : null;
+    el.progCorps.appendChild(elem('p', 'note',
+      'Version installée : ' + (version && version.indexOf('_') < 0
+        ? version : 'inconnue (page non construite)')));
 
     var saisie = elem('div', 'saisie');
     var champ = document.createElement('input');
