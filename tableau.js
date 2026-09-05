@@ -1,10 +1,13 @@
 /*
  * Tableau de progression — la face portrait.
  *
- * Une grille de tuiles, une par catégorie. Une tape vaut `+1` ; c'est tout ce
- * que fait cet écran, et c'est délibéré. Le suivi du temps de travail tient
- * parce que la donnée se ramasse toute seule ; celui-ci ne tiendra que si
- * déclarer une séance coûte un geste, pas une saisie.
+ * C'EST LA PAGE DE PROGRESSION, RENDUE VIVANTE : le blason en grand, le niveau,
+ * la semaine, puis une ligne par catégorie — et chaque ligne se tape pour
+ * compter `+1`. Un seul écran, parce qu'il n'y a qu'une seule chose à y voir.
+ *
+ * Le suivi du temps de travail tient parce que la donnée se ramasse toute
+ * seule ; celui-ci ne tiendra que si déclarer une séance coûte un geste, pas
+ * une saisie.
  *
  * CE FICHIER N'ÉCRIT NI DANS LE STOCKAGE NI SUR LE RÉSEAU. Il demande un état
  * à `SuiviUI`, il lui pose un geste, il se redessine quand on le prévient. Deux
@@ -27,7 +30,7 @@
   var el = {
     tableau: document.getElementById('tableau'),
     tete: document.getElementById('tab-tete-vue'),
-    grille: document.getElementById('tab-grille'),
+    corps: document.getElementById('tab-corps'),
     annuler: document.getElementById('tab-annuler'),
     annulerTexte: document.getElementById('tab-annuler-texte'),
     annulerBouton: document.getElementById('tab-annuler-bouton'),
@@ -99,7 +102,7 @@
   }
 
   function jauge(fraction) {
-    var j = elem('div', 'jauge tuile-jauge');
+    var j = elem('div', 'jauge');
     j.appendChild(document.createElement('span'));
     largeurJauge(j, fraction);
     return j;
@@ -318,80 +321,82 @@
 
   // ── Rendu ───────────────────────────────────────────────────────────────
   //
-  // LES TUILES SONT MISES À JOUR, PAS RECONSTRUITES. Le premier rendu les
-  // reconstruisait toutes à chaque changement — donc à chaque `+1`, et à chaque
-  // synchronisation, soit une fois par minute. Les images de blason repassaient
-  // alors par leur chargement, et toute la grille clignotait. Ici chaque tuile
-  // garde ses nœuds et n'écrit que ce qui diffère.
+  // LA FACE PORTRAIT EST LA PAGE DE PROGRESSION, RENDUE VIVANTE. Elle a
+  // d'abord été une grille de tuiles à côté d'un panneau de statistiques : deux
+  // écrans pour une seule chose, et celui qu'on voulait voir en arrivant —
+  // le blason en grand, le niveau, la semaine — n'était pas celui qui
+  // s'ouvrait. Il n'en reste qu'un, où chaque ligne se tape.
+  //
+  // LES LIGNES SONT MISES À JOUR, PAS RECONSTRUITES. Reconstruire les images de
+  // blason les fait repasser par leur chargement, et toute la liste clignote à
+  // chaque `+1` — et à chaque synchronisation, soit une fois par minute.
 
-  //: Les tuiles vivantes, par identifiant de catégorie.
-  var tuiles = {};
+  //: Les lignes vivantes, par identifiant de catégorie.
+  var lignes = {};
+
+  //: La ligne de création, faite une fois pour toutes.
+  var ligneNeuve = null;
 
   /*
-   * GEL APRÈS UN REMANIEMENT DE LA GRILLE.
+   * GEL APRÈS UN REMANIEMENT DE LA LISTE.
    *
-   * Créer une catégorie fait apparaître sa tuile **exactement là où était le
-   * bouton « + Catégorie »** — donc sous le doigt qui vient de s'en servir.
-   * Une deuxième tape, ou une tape d'impatience pendant que le formulaire
-   * s'ouvrait, comptait aussitôt une séance : la catégorie semblait naître
-   * à 1.
+   * Une ligne qui apparaît, disparaît ou change de rang déplace toutes les
+   * suivantes : ce qui était sous le doigt ne l'est plus. Créer une catégorie
+   * faisait ainsi naître sa ligne là où le doigt venait de se poser, et une
+   * seconde tape y comptait aussitôt une séance.
    *
-   * Le gel ne protège que le comptage. Fermer, corriger, ouvrir les réglages
-   * restent possibles : ce qu'on empêche, c'est d'écrire dans le journal par
-   * une tape qui visait autre chose.
+   * Le gel ne protège que le comptage. Ouvrir un historique, les réglages ou
+   * le formulaire reste possible : ce qu'on empêche, c'est d'écrire au journal
+   * par une tape qui visait autre chose.
    */
   var GEL_MS = 700;
   var geleJusqua = 0;
 
-  //: La tuile de création, faite une fois pour toutes.
-  var tuileNeuve = null;
-
   /**
-   * Une tuile, et les nœuds qu'elle mettra à jour.
+   * Une ligne de catégorie : blason, nom, valeur, jauge, niveau.
    *
-   * Toute sa surface est le bouton — viser un « + » de quelques millimètres
-   * d'une main occupée est exactement ce qu'on veut éviter ici.
+   * C'est un bouton sur toute sa largeur — viser une cible de quelques
+   * millimètres d'une main occupée est exactement ce qu'on veut éviter.
    */
-  function tuile() {
-    var bouton = elem('button', 'tuile');
+  function ligne() {
+    var bouton = elem('button', 'ligne ligne-blason ligne-bouton');
     bouton.type = 'button';
 
     var parts = {
       blason: blason(1),
-      nom: elem('div', 'tuile-nom', ''),
-      valeur: elem('div', 'tuile-valeur', ''),
+      nom: elem('span', 'ligne-nom', ''),
+      valeur: elem('span', 'ligne-temps', ''),
       jauge: jauge(0),
-      niveau: elem('span', null, ''),
-      jour: elem('span', 'tuile-jour', ''),
-      marque: elem('div', 'tuile-marque', 'chrono')
+      pied: elem('div', 'ligne-pied', ''),
+      jour: elem('span', 'ligne-jour', '')
     };
-    var pied = elem('div', 'tuile-pied');
-    pied.appendChild(parts.niveau);
-    pied.appendChild(parts.jour);
+
+    var tete = elem('div', 'ligne-tete');
+    tete.appendChild(parts.nom);
+    tete.appendChild(parts.valeur);
+
+    var corps = elem('div', 'ligne-corps');
+    corps.appendChild(tete);
+    corps.appendChild(parts.jauge);
+    var bas = elem('div', 'ligne-bas');
+    bas.appendChild(parts.pied);
+    bas.appendChild(parts.jour);
+    corps.appendChild(bas);
 
     bouton.appendChild(parts.blason);
-    bouton.appendChild(parts.nom);
-    bouton.appendChild(parts.valeur);
-    bouton.appendChild(parts.jauge);
-    bouton.appendChild(pied);
-    bouton.appendChild(parts.marque);
+    bouton.appendChild(corps);
     bouton.parts = parts;
 
     // Les écouteurs sont posés UNE FOIS et lisent la catégorie du moment sur le
-    // nœud : les reposer à chaque rendu en accumulerait un de plus par tuile et
+    // nœud : les reposer à chaque rendu en accumulerait un de plus par ligne et
     // par minute, et un `+1` finirait par en compter plusieurs.
     bouton.addEventListener('click', function () {
       if (bouton.longAppui) { bouton.longAppui = false; return; }
       var c = bouton.categorie;
       if (!c) return;
-      // Une catégorie de temps ne se compte pas d'une tape : son historique
-      // est ce qu'on vient y chercher. Ouvrir la progression générale, comme
-      // au début, répondait à côté de la question posée par le geste.
+      // Une catégorie de temps ne se compte pas d'une tape : son historique est
+      // ce qu'on vient y chercher.
       if (c.unite === 'temps') { ouvrirCorrection(c); return; }
-      // Le gel est posé APRÈS ce qui n'écrit rien. Il existe pour empêcher une
-      // tape égarée d'entrer une séance au journal, pas pour rendre la grille
-      // inerte — placé plus haut, il bloquait aussi l'ouverture d'un
-      // historique, ce que le commentaire qui l'accompagne dément.
       if (Date.now() < geleJusqua) return;
       // Un kilométrage ne se devine pas ; une séance, si. Pour la distance, on
       // demande le nombre — c'est le seul endroit où une saisie est inévitable.
@@ -405,9 +410,6 @@
       if (id) offrirAnnulation(id, c.nom);
     });
 
-    // L'appui long ouvre l'historique de la catégorie. C'est le seul moyen de
-    // réparer autre chose que la dernière tape : le bandeau d'annulation ne
-    // défait qu'un geste, et une erreur s'aperçoit parfois le lendemain.
     brancherAppuiLong(bouton, function () {
       if (bouton.categorie) ouvrirCorrection(bouton.categorie);
     });
@@ -415,8 +417,8 @@
     return bouton;
   }
 
-  /** N'écrit sur une tuile que ce qui a changé. */
-  function majTuile(bouton, c) {
+  /** N'écrit sur une ligne que ce qui a changé. */
+  function majLigne(bouton, c) {
     bouton.categorie = c;
     var parts = bouton.parts;
     if (bouton.getAttribute('data-categorie') !== c.nom) {
@@ -426,14 +428,18 @@
     texte(parts.nom, c.nom);
     texte(parts.valeur, S.formatValeur(c.valeur, c.unite));
     largeurJauge(parts.jauge, c.niveau.fraction);
-    texte(parts.niveau, 'Niv. ' + c.niveau.niveau);
+    // « Niveau 2 · reste 28 h 20 » plutôt que « … avant le 3 » : sur une
+    // colonne de téléphone, la forme longue passait à la ligne pour deux mots.
+    texte(parts.pied,
+          'Niveau ' + c.niveau.niveau + ' · reste ' +
+          S.formatValeur(c.niveau.pourSuivant, c.unite));
     // Le « + » dit que c'est un ajout du jour et non un total ; rien du tout
     // quand il n'y a rien, car un tiret se lit comme une donnée manquante.
     texte(parts.jour,
           c.aujourdhui > 0 ? '+' + S.formatValeur(c.aujourdhui, c.unite) : '');
-    parts.marque.hidden = c.unite !== 'temps';
   }
 
+  /** L'en-tête : le blason en grand, le niveau, et de quoi le vérifier. */
   function dessinerTete(etat) {
     if (!el.tete.parts) {
       var boite = blason(1);
@@ -457,63 +463,111 @@
     largeurJauge(p.jauge, etat.global.fraction);
     // Les trois piliers sont écrits, et pas seulement le niveau qu'ils donnent :
     // un général qui surprend doit pouvoir être recalculé de tête. Sans eux, il
-    // ne peut être ni confirmé ni contesté — c'est ce qui a coûté trois
-    // échanges avant qu'on trouve la bonne règle.
+    // ne peut être ni confirmé ni contesté.
     texte(p.detail,
-      'Tes 3 meilleures : ' +
+      'Tes ' + etat.global.piliers + ' meilleures : ' +
       etat.global.retenues.map(function (v) { return Math.floor(v) + 1; }).join(' · ') +
       ' · ' + Math.round(etat.global.fraction * 100) + ' % du niveau ' +
       (etat.global.niveau + 1));
+  }
+
+  /** Les trois totaux : aujourd'hui, la semaine, la série. */
+  function dessinerTotaux(etat) {
+    var totaux = elem('div', 'totaux');
+    [['Aujourd’hui', S.formatDuree(etat.jour * S.MS_MINUTE)],
+     ['Cette semaine', S.formatDuree(etat.semaine * S.MS_MINUTE)],
+     ['Série', etat.serie + (etat.serie > 1 ? ' jours' : ' jour')]
+    ].forEach(function (paire) {
+      var carte = elem('div', 'total');
+      carte.appendChild(elem('div', 'total-valeur', paire[1]));
+      carte.appendChild(elem('div', 'total-nom', paire[0]));
+      totaux.appendChild(carte);
+    });
+    return totaux;
+  }
+
+  /** Les sept derniers jours, en heures chronométrées. */
+  function dessinerSemaine(etat) {
+    var maxi = etat.jours.reduce(function (m, j) { return Math.max(m, j.ms); }, 0);
+    var semaine = elem('div', 'semaine');
+    var LETTRES = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    etat.jours.forEach(function (j) {
+      var colonne = elem('div', 'barre-jour' + (j.ms > 0 ? ' travaille' : ''));
+      colonne.appendChild(elem('b', null, j.ms > 0 ? compact(j.ms) : '·'));
+      var fut = elem('div', 'fut');
+      var barre = elem('i');
+      barre.style.height =
+        (maxi > 0 ? Math.max(3, Math.round(100 * j.ms / maxi)) : 3) + '%';
+      fut.appendChild(barre);
+      colonne.appendChild(fut);
+      var d = new Date(j.jour + 'T12:00:00');
+      colonne.appendChild(elem('u', null, LETTRES[(d.getDay() + 6) % 7]));
+      semaine.appendChild(colonne);
+    });
+    return semaine;
+  }
+
+  /** « 3h21 », « 45m » — la forme longue ne tient pas sous une colonne. */
+  function compact(ms) {
+    var minutes = Math.round(ms / S.MS_MINUTE);
+    var heures = Math.floor(minutes / 60);
+    var reste = minutes % 60;
+    if (!heures) return minutes + 'm';
+    if (!reste) return heures + 'h';
+    return heures + 'h' + (reste < 10 ? '0' : '') + reste;
   }
 
   function dessiner() {
     var etat = U.etat();
     dessinerTete(etat);
 
-    if (!tuileNeuve) {
-      tuileNeuve = elem('button', 'tuile tuile-neuve', '+ Catégorie');
-      tuileNeuve.type = 'button';
-      tuileNeuve.addEventListener('click', ouvrirNeuve);
+    if (!ligneNeuve) {
+      ligneNeuve = elem('button', 'ligne ligne-bouton ligne-neuve', '+ Catégorie');
+      ligneNeuve.type = 'button';
+      ligneNeuve.addEventListener('click', ouvrirNeuve);
     }
 
+    // Les deux blocs du haut n'ont ni image ni écouteur : les refaire ne coûte
+    // rien et évite de tenir un état de plus.
+    // Retiré par son parent réel, et non par celui qu'on suppose : le nœud peut
+    // avoir été détaché entre deux rendus, et `removeChild` lève dans ce cas —
+    // ce qui interromprait le rendu au premier tiers.
+    if (el.resume && el.resume.parentNode) {
+      el.resume.parentNode.removeChild(el.resume);
+    }
+    el.resume = elem('div', 'tab-resume');
+    if (etat.sessions) {
+      el.resume.appendChild(dessinerTotaux(etat));
+      el.resume.appendChild(dessinerSemaine(etat));
+    }
+    el.corps.insertBefore(el.resume, el.corps.firstChild);
+
     var vues = {};
-    var precedente = null;
+    var precedente = el.resume;
     var bouge = false;
     etat.categories.forEach(function (c) {
-      var noeud = tuiles[c.id];
-      if (!noeud) { noeud = tuile(); tuiles[c.id] = noeud; }
-      majTuile(noeud, c);
+      var noeud = lignes[c.id];
+      if (!noeud) { noeud = ligne(); lignes[c.id] = noeud; bouge = true; }
+      majLigne(noeud, c);
       vues[c.id] = true;
       // Replacée seulement si elle n'est pas déjà au bon endroit : déplacer un
-      // nœud le retire du document, ce qui suffirait à faire clignoter ce
-      // qu'on vient d'éviter de reconstruire.
-      var attendue = precedente ? precedente.nextSibling : el.grille.firstChild;
-      if (attendue !== noeud) { el.grille.insertBefore(noeud, attendue); bouge = true; }
+      // nœud le retire du document, ce qui suffirait à faire clignoter ce qu'on
+      // vient d'éviter de reconstruire.
+      var attendue = precedente.nextSibling;
+      if (attendue !== noeud) { el.corps.insertBefore(noeud, attendue); bouge = true; }
       precedente = noeud;
     });
 
-    Object.keys(tuiles).forEach(function (id) {
+    Object.keys(lignes).forEach(function (id) {
       if (vues[id]) return;
-      if (tuiles[id].parentNode) tuiles[id].parentNode.removeChild(tuiles[id]);
-      delete tuiles[id];
+      if (lignes[id].parentNode) lignes[id].parentNode.removeChild(lignes[id]);
+      delete lignes[id];
       bouge = true;
     });
 
-    // Une tuile qui apparaît, disparaît ou change de place déplace toutes les
-    // suivantes : ce qui était sous le doigt ne l'est plus.
+    if (el.corps.lastChild !== ligneNeuve) el.corps.appendChild(ligneNeuve);
     if (bouge) geleJusqua = Date.now() + GEL_MS;
-
-    if (el.grille.lastChild !== tuileNeuve) el.grille.appendChild(tuileNeuve);
-
-    if (!el.vide) {
-      el.vide = elem('p', 'tab-vide',
-        'Aucune catégorie pour l’instant. Ajoutes-en une — muscu, vélo, ' +
-        'lecture — et une tape suffira à la compter.');
-    }
-    if (!etat.categories.length) el.grille.appendChild(el.vide);
-    else if (el.vide.parentNode) el.vide.parentNode.removeChild(el.vide);
   }
-
   // Se redessiner sur tout changement du journal, d'où qu'il vienne : un `+1`
   // posé sur le téléphone doit apparaître ici après la synchro suivante, sans
   // qu'on ait à rouvrir l'application.
@@ -524,7 +578,7 @@
    *
    * La face paysage n'a que faire d'une grille qu'elle ne montre pas ; et le
    * temps écoulé pendant qu'on chronométrait a pu changer la journée, donc les
-   * totaux du jour de chaque tuile.
+   * totaux du jour de chaque ligne.
    */
   function enPortrait() {
     return window.matchMedia('(orientation: portrait)').matches;

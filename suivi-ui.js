@@ -1239,6 +1239,10 @@
       global: agr.global,
       serie: agr.serie,
       jour: agr.jour,
+      semaine: agr.semaine,
+      // Les sept derniers jours : la face portrait montre le même histogramme
+      // que le panneau, et doit donc recevoir la même chose.
+      jours: agr.jours,
       total: agr.total,
       sessions: agr.sessions,
       categories: categoriesVives().map(function (c) {
