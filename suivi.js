@@ -27,14 +27,25 @@
   var MS_MINUTE = 60000;
 
   /*
-   * Échelle des niveaux : **un palier de coût constant**, sans accélération.
+   * Échelle des niveaux : le niveau n s'atteint à **`coût × (n − 1)²`**.
    *
-   * Le niveau n s'atteint à `coût × (n − 1)`. Une progression régulière se
-   * prévoit de tête — on sait toujours ce qu'il reste à faire, et dix heures de
-   * plus valent autant au niveau 3 qu'au niveau 12. Une courbe qui s'allonge à
-   * chaque palier récompense surtout les débuts et finit par rendre les niveaux
-   * élevés hors d'atteinte ; ce n'est pas ce qu'on veut d'un suivi de vie, où
-   * l'on cherche la régularité plutôt que la performance.
+   * L'échelle a d'abord été linéaire, et c'était une erreur de cadrage. Le
+   * raisonnement tenait — une progression régulière se prévoit de tête, et dix
+   * heures de plus valent autant au niveau 3 qu'au niveau 12 — mais il supposait
+   * une échelle sans fin. Or il y a **dix blasons**, et pas un de plus : les dix
+   * marches doivent donc couvrir une pratique entière, pas dix mois. Avec un
+   * palier constant, un an et demi de salle atteignait le niveau 27 et plafonnait
+   * le dernier blason avant d'avoir commencé à vouloir dire quelque chose.
+   *
+   * Le carré place les marches là où il faut : le niveau 2 après un mois de
+   * rythme tenu, le 5 après seize mois, le 10 après **six ans et neuf mois**.
+   * Le premier palier garde donc exactement le sens que lui donne le rythme
+   * visé, et le dernier redevient une distinction.
+   *
+   * L'objection d'origine — les hauts niveaux deviennent lents — est vraie, et
+   * c'est le prix d'une échelle bornée. Elle est atténuée par la jauge, qui
+   * montre la progression **dans** le niveau, et par le total, qui continue de
+   * monter en ligne droite.
    *
    * Chaque unité porte son coût de niveau par défaut, le libellé de son rythme,
    * et le rythme hebdomadaire qu'on propose à la création.
@@ -82,9 +93,17 @@
     return c / parUnite / SEMAINES_PAR_NIVEAU;
   }
 
-  /** « un niveau = 12 fois », « un niveau = 20 h ». */
+  /**
+   * Ce que le rythme visé implique, aux deux bouts de l'échelle.
+   *
+   * Le seul premier palier ne dit plus rien depuis que l'échelle est courbe :
+   * il faut le dernier pour comprendre ce qu'on vise. « Niveau 2 à 12 fois,
+   * niveau 10 à 972 » se lit d'un coup d'œil, et dit à la fois que le début est
+   * proche et que la fin est une distinction.
+   */
   function coutLisible(cout, unite) {
-    return 'un niveau = ' + formatValeur(cout, unite);
+    return 'niveau 2 à ' + formatValeur(seuil(2, cout), unite) +
+           ' · niveau 10 à ' + formatValeur(seuil(10, cout), unite);
   }
 
   var UNITE_DEFAUT = 'temps';
@@ -108,9 +127,14 @@
     return { unite: unite, cout: cout };
   }
 
+  //: L'exposant de l'échelle. Deux : le seul qui se raconte en une phrase —
+  //: « le niveau n coûte (n−1) mois de rythme » — et qui place le dixième
+  //: blason à près de sept ans de pratique.
+  var EXPOSANT = 2;
+
   /** Valeur cumulée nécessaire pour atteindre `niveau`. Le niveau 1 est à 0. */
   function seuil(niveau, cout) {
-    return niveau <= 1 ? 0 : cout * (niveau - 1);
+    return niveau <= 1 ? 0 : cout * Math.pow(niveau - 1, EXPOSANT);
   }
 
   /**
@@ -432,6 +456,7 @@
     MS_MINUTE: MS_MINUTE,
     UNITES: UNITES,
     SEMAINES_PAR_NIVEAU: SEMAINES_PAR_NIVEAU,
+    EXPOSANT: EXPOSANT,
     coutPourRythme: coutPourRythme,
     rythmePourCout: rythmePourCout,
     coutLisible: coutLisible,
