@@ -15,15 +15,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <!-- Injectée à la construction. Sans elle, « je suis à jour ? » n'a pas de
      réponse : on compare des symptômes au lieu de lire un numéro. -->
-<meta name="chrono-version" content="58"/>
+<meta name="chrono-version" content="59"/>
 <title>Chrono</title>
-<link rel="manifest" href="manifest.webmanifest?v=58"/>
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=58"/>
-<link rel="icon" type="image/png" href="icon-192.png?v=58"/>
-<link rel="stylesheet" href="flip.css?v=58"/>
-<link rel="stylesheet" href="chrono.css?v=58"/>
-<link rel="stylesheet" href="suivi.css?v=58"/>
-<link rel="stylesheet" href="tableau.css?v=58"/>
+<link rel="manifest" href="manifest.webmanifest?v=59"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=59"/>
+<link rel="icon" type="image/png" href="icon-192.png?v=59"/>
+<link rel="stylesheet" href="flip.css?v=59"/>
+<link rel="stylesheet" href="chrono.css?v=59"/>
+<link rel="stylesheet" href="suivi.css?v=59"/>
+<link rel="stylesheet" href="tableau.css?v=59"/>
 </head>
 <body>
 
@@ -142,7 +142,7 @@
 <div class="heure-coin" id="heure-coin" hidden></div>
 
 <!-- Signature de branding, comme en pied des autres applications NOIR. -->
-<img class="marque" src="brand.png?v=58" alt="NOIR">
+<img class="marque" src="brand.png?v=59" alt="NOIR">
 
 <!-- La face PORTRAIT : le tableau de progression. L'orientation choisit la
      face, et ce n'est pas un artifice — elle dit la posture. À l'horizontale,
@@ -182,12 +182,12 @@
   <div class="tab-neuve" id="tab-neuve" hidden>
     <input type="text" id="tab-neuve-nom" maxlength="40"
            placeholder="Muscu, vélo, lecture…"/>
-    <!-- Le rythme visé, plutôt que le coût d'un niveau. « Combien d'heures
-         vaut un niveau » n'a pas de réponse — personne ne raisonne ainsi.
-         « Combien de fois par semaine je vise » en a une, et le coût s'en
-         déduit : quatre semaines de rythme tenu valent un niveau. -->
+    <!-- Ce que vaut la maîtrise, plutôt que le coût d'un palier. « Combien
+         vaut un niveau » n'a pas de réponse ; « mille séances de salle », ou
+         « quarante heures de préparation d'entretien », en ont une. Le niveau
+         10 étant à quatre-vingt-un paliers, le reste de la courbe s'en déduit. -->
     <div class="rythme rythme-neuve">
-      <span class="rythme-nom">Rythme visé</span>
+      <span class="rythme-nom">Maîtrise</span>
       <input type="number" id="tab-neuve-rythme" class="rythme-champ"
              min="0" inputmode="decimal"/>
       <span class="rythme-suffixe" id="tab-neuve-suffixe"></span>
@@ -209,10 +209,10 @@
   </div>
 </section>
 
-<script src="timer.js?v=58"></script>
-<script src="suivi.js?v=58"></script>
-<script src="suivi-ui.js?v=58"></script>
-<script src="tableau.js?v=58"></script>
-<script src="chrono.js?v=58"></script>
+<script src="timer.js?v=59"></script>
+<script src="suivi.js?v=59"></script>
+<script src="suivi-ui.js?v=59"></script>
+<script src="tableau.js?v=59"></script>
+<script src="chrono.js?v=59"></script>
 </body>
 </html>

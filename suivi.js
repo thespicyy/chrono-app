@@ -56,54 +56,53 @@
    * atteints, en silence et sans que personne l'ait demandé.
    */
   var UNITES = {
-    //: La valeur d'une entrée est en MINUTES ; le rythme, lui, se dit en heures
-    //: par semaine — personne ne vise « trois cents minutes ».
-    temps: { cout: 600, rythme: 5, parSemaine: 'h / semaine', pas: 0.5 },
-    fois: { cout: 20, rythme: 3, parSemaine: 'fois / semaine', pas: 1 },
-    distance: { cout: 200, rythme: 50, parSemaine: 'km / semaine', pas: 5 }
+    //: La valeur d'une entrée est en MINUTES ; l'objectif, lui, se dit en
+    //: heures — personne ne se fixe « douze mille minutes ».
+    temps: { cout: 600, objectif: 200, suffixe: 'h au niveau 10', pas: 5 },
+    fois: { cout: 20, objectif: 1000, suffixe: 'fois au niveau 10', pas: 10 },
+    distance: { cout: 200, objectif: 10000, suffixe: 'km au niveau 10', pas: 100 }
   };
 
   /*
-   * QUATRE SEMAINES DE RYTHME TENU VALENT UN NIVEAU.
+   * L'ÉCHELLE S'ANCRE SUR LE NIVEAU 10, PAS SUR LE PREMIER PALIER.
    *
-   * « Combien d'heures vaut un niveau ? » n'a pas de réponse : personne ne
-   * raisonne en heures par niveau. « Combien de fois par semaine je vise ? »
-   * en a une, immédiate — et le coût s'en déduit.
+   * « Combien vaut un niveau ? » n'a pas de réponse — personne ne raisonne
+   * ainsi. « Qu'est-ce que la maîtrise, ici ? » en a une, immédiate : mille
+   * séances de salle, quarante heures de préparation d'entretien. Et ces deux
+   * réponses n'ont aucun rapport d'échelle entre elles, ce qui est exactement
+   * la raison pour laquelle un réglage commun ne pouvait pas convenir.
    *
-   * Un mois est le bon pas : assez fréquent pour encourager, assez rare pour
-   * vouloir dire quelque chose. Avec dix blasons, il place le dernier à dix
-   * mois de régularité — long, mais pas hors d'atteinte.
+   * Le coût du premier palier s'en déduit : le niveau 10 étant à `coût × 81`,
+   * l'objectif divisé par 81 donne le coût. Tout le reste de la courbe suit.
    */
-  var SEMAINES_PAR_NIVEAU = 4;
 
-  /** Le coût d'un niveau, pour un rythme hebdomadaire visé. */
-  function coutPourRythme(rythme, unite) {
-    var r = Math.max(0, parseFloat(rythme) || 0);
-    if (!r) return null;
+  /** Le coût d'un palier, pour un objectif de niveau 10. */
+  function coutPourObjectif(objectif, unite) {
+    var o = Math.max(0, parseFloat(objectif) || 0);
+    if (!o) return null;
     // Le temps se vise en heures et se compte en minutes.
     var parUnite = (unite === 'temps') ? 60 : 1;
-    return r * parUnite * SEMAINES_PAR_NIVEAU;
+    return o * parUnite / seuil(10, 1);
   }
 
-  /** Le rythme hebdomadaire qu'implique un coût de niveau. */
-  function rythmePourCout(cout, unite) {
+  /** L'objectif de niveau 10 qu'implique un coût de palier. */
+  function objectifPourCout(cout, unite) {
     var c = Math.max(0, parseFloat(cout) || 0);
     if (!c) return 0;
     var parUnite = (unite === 'temps') ? 60 : 1;
-    return c / parUnite / SEMAINES_PAR_NIVEAU;
+    return c * seuil(10, 1) / parUnite;
   }
 
   /**
-   * Ce que le rythme visé implique, aux deux bouts de l'échelle.
+   * Les premières marches, une fois l'objectif posé.
    *
-   * Le seul premier palier ne dit plus rien depuis que l'échelle est courbe :
-   * il faut le dernier pour comprendre ce qu'on vise. « Niveau 2 à 12 fois,
-   * niveau 10 à 972 » se lit d'un coup d'œil, et dit à la fois que le début est
-   * proche et que la fin est une distinction.
+   * L'objectif dit où l'on va ; il ne dit pas si le début est atteignable.
+   * « Niveau 2 à 12 fois, niveau 5 à 198 » répond à la seule question qui
+   * reste : à quoi ressemblent les premiers paliers.
    */
   function coutLisible(cout, unite) {
     return 'niveau 2 à ' + formatValeur(seuil(2, cout), unite) +
-           ' · niveau 10 à ' + formatValeur(seuil(10, cout), unite);
+           ' · niveau 5 à ' + formatValeur(seuil(5, cout), unite);
   }
 
   var UNITE_DEFAUT = 'temps';
@@ -508,11 +507,10 @@
   return {
     MS_MINUTE: MS_MINUTE,
     UNITES: UNITES,
-    SEMAINES_PAR_NIVEAU: SEMAINES_PAR_NIVEAU,
     PILIERS: PILIERS,
     EXPOSANT: EXPOSANT,
-    coutPourRythme: coutPourRythme,
-    rythmePourCout: rythmePourCout,
+    coutPourObjectif: coutPourObjectif,
+    objectifPourCout: objectifPourCout,
     coutLisible: coutLisible,
     UNITE_DEFAUT: UNITE_DEFAUT,
     BASE_CATEGORIE: BASE_CATEGORIE,

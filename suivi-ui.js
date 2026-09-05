@@ -471,17 +471,19 @@
   }
 
   /**
-   * Le rythme visé d'une catégorie, et ce qu'il coûte par niveau.
+   * L'objectif de niveau 10 d'une catégorie, et les premières marches.
    *
-   * On demande le rythme, jamais le coût : « combien d'heures vaut un niveau »
-   * n'a pas de réponse — personne ne raisonne ainsi. « Combien de fois par
-   * semaine je vise » en a une, immédiate, et le coût s'en déduit.
+   * On demande **ce que vaut la maîtrise**, jamais le coût d'un palier :
+   * « combien vaut un niveau » n'a pas de réponse, « mille séances de salle »
+   * ou « quarante heures de préparation » en ont une, immédiate. Et ces deux
+   * réponses n'ont aucun rapport d'échelle : c'est bien pour cela qu'un
+   * réglage commun ne pouvait pas convenir.
    *
-   * `compte` sert à l'avertissement : relever un coût fait **redescendre** un
-   * niveau déjà atteint. C'est acceptable quand on l'a décidé, jamais quand on
-   * le découvre — le niveau à venir est donc annoncé avant d'appliquer.
+   * `compte` sert à l'avertissement : relever un objectif fait **redescendre**
+   * un niveau déjà atteint. C'est acceptable quand on l'a décidé, jamais quand
+   * on le découvre — le niveau à venir est donc annoncé avant d'appliquer.
    */
-  function reglageRythme(categorie, compte) {
+  function reglageObjectif(categorie, compte) {
     var boite = elem('div', 'rythme');
     var reglage = S.reglageDe(categorie.id, reglages());
     var infos = S.UNITES[reglage.unite];
@@ -493,13 +495,13 @@
     champ.inputMode = 'decimal';
     champ.className = 'rythme-champ';
     champ.value = String(Math.round(
-      S.rythmePourCout(reglage.cout, reglage.unite) * 100) / 100);
+      S.objectifPourCout(reglage.cout, reglage.unite)));
 
-    var suffixe = elem('span', 'rythme-suffixe', infos.parSemaine);
+    var suffixe = elem('span', 'rythme-suffixe', infos.suffixe);
     var resume = elem('span', 'rythme-resume', '');
 
     function apercu() {
-      var futur = S.coutPourRythme(champ.value, reglage.unite) || reglage.cout;
+      var futur = S.coutPourObjectif(champ.value, reglage.unite) || reglage.cout;
       var texte = S.coutLisible(futur, reglage.unite);
       // Le niveau que ce coût donnerait, s'il change celui d'aujourd'hui.
       if (compte) {
@@ -512,8 +514,12 @@
     }
 
     function appliquer() {
-      var futur = S.coutPourRythme(champ.value, reglage.unite);
-      if (!futur) { champ.value = String(S.rythmePourCout(reglage.cout, reglage.unite)); return; }
+      var futur = S.coutPourObjectif(champ.value, reglage.unite);
+      if (!futur) {
+        champ.value = String(Math.round(
+          S.objectifPourCout(reglage.cout, reglage.unite)));
+        return;
+      }
       if (futur === categorie.cout) return;
       categorie.cout = futur;
       categorie.majA = Date.now();
@@ -528,7 +534,7 @@
     champ.addEventListener('change', appliquer);
     apercu();
 
-    boite.appendChild(elem('span', 'rythme-nom', 'Rythme visé'));
+    boite.appendChild(elem('span', 'rythme-nom', 'Maîtrise'));
     boite.appendChild(champ);
     boite.appendChild(suffixe);
     boite.appendChild(resume);
@@ -636,7 +642,7 @@
         synchroniser();
         dessinerProgression();
       }));
-      ligne.appendChild(reglageRythme(categorie, compte));
+      ligne.appendChild(reglageObjectif(categorie, compte));
       lignes.appendChild(ligne);
     });
     el.progCorps.appendChild(lignes);
