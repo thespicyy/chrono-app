@@ -36,6 +36,9 @@
     neuveCreer: document.getElementById('tab-neuve-creer'),
     neuveUnites: document.getElementById('tab-neuve-unites'),
     neuveFermer: document.getElementById('tab-neuve-fermer'),
+    neuveRythme: document.getElementById('tab-neuve-rythme'),
+    neuveSuffixe: document.getElementById('tab-neuve-suffixe'),
+    neuveResume: document.getElementById('tab-neuve-resume'),
     reglages: document.getElementById('tab-reglages')
   };
   if (!el.tableau) return;
@@ -250,9 +253,30 @@
       bouton.addEventListener('click', function () {
         uniteNeuve = paire[0];
         dessinerUnitesNeuve();
+        // Le rythme repart au défaut de la nouvelle unité : « 3 » gardé en
+        // passant des fois aux kilomètres proposerait trois kilomètres par
+        // semaine, ce que personne ne vise.
+        poserRythmeNeuve();
       });
       el.neuveUnites.appendChild(bouton);
     });
+  }
+
+  /** Remet le rythme au défaut de l'unité choisie, et rafraîchit l'aperçu. */
+  function poserRythmeNeuve() {
+    var infos = S.UNITES[uniteNeuve] || S.UNITES[S.UNITE_DEFAUT];
+    el.neuveRythme.step = String(infos.pas);
+    el.neuveRythme.value = String(infos.rythme);
+    texte(el.neuveSuffixe, infos.parSemaine);
+    apercuRythmeNeuve();
+  }
+
+  /** Ce que le rythme saisi coûtera par niveau, dit tout de suite. */
+  function apercuRythmeNeuve() {
+    var cout = S.coutPourRythme(el.neuveRythme.value, uniteNeuve);
+    texte(el.neuveResume,
+          cout ? S.coutLisible(cout, uniteNeuve)
+               : 'sans rythme visé, le niveau coûte le réglage par défaut');
   }
 
   function ouvrirNeuve() {
@@ -260,6 +284,7 @@
     el.neuveNom.value = '';
     uniteNeuve = 'fois';
     dessinerUnitesNeuve();
+    poserRythmeNeuve();
     try { el.neuveNom.focus(); } catch (err) { /* sans gravité */ }
   }
 
@@ -271,11 +296,13 @@
   function creerNeuve() {
     var nom = (el.neuveNom.value || '').trim();
     if (!nom) return;
-    U.creerCategorie(nom, uniteNeuve);
+    U.creerCategorie(nom, uniteNeuve,
+                     S.coutPourRythme(el.neuveRythme.value, uniteNeuve));
     fermerNeuve();
     dessiner();
   }
 
+  el.neuveRythme.addEventListener('input', apercuRythmeNeuve);
   el.neuveCreer.addEventListener('click', creerNeuve);
   // Ouvert par mégarde, le formulaire n'avait aucune sortie : il fallait créer
   // une catégorie dont on ne voulait pas pour s'en débarrasser.

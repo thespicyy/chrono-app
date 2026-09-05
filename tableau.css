@@ -181,13 +181,18 @@
   background:var(--surface);
 }
 .tab-neuve[hidden]{display:none;}
-.tab-neuve input{
+/* Visé sur le champ de texte, et non sur `input` : la règle large gagnait
+   contre `.rythme-champ` — plus spécifique d'un cran — et étirait le nombre
+   sur toute la largeur, rejetant son unité à la ligne. */
+.tab-neuve input[type="text"]{
   width:100%;
   padding:11px 13px;border-radius:11px;
   border:1px solid var(--border-strong);background:var(--surface2);
   color:var(--text);font-family:inherit;font-weight:600;font-size:15px;
 }
-.tab-neuve input:focus{outline:none;border-color:var(--text);}
+.tab-neuve input[type="text"]:focus{outline:none;border-color:var(--text);}
+.rythme-neuve{padding:2px 2px 0;}
+
 .tab-neuve-pied{display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
 .tab-neuve-pied .bouton{flex:0 0 auto;}
 .tab-neuve-pied .lien{flex:0 0 auto;}

@@ -103,19 +103,20 @@
    * nom couperaient l'historique en deux sans que rien ne le signale — et rien
    * ne le signalerait, puisque les deux s'afficheraient.
    */
-  function creerCategorie(nom, unite) {
+  function creerCategorie(nom, unite, cout) {
     var propre = String(nom || '').trim();
     if (!propre) return null;
     var connue = categoriesVives().filter(function (c) {
       return c.nom.toLowerCase() === propre.toLowerCase();
     })[0];
     if (connue) return connue;
+    var chiffre = parseFloat(cout);
     var neuve = {
       id: identifiant(), nom: propre,
       unite: S.UNITES[unite] ? unite : S.UNITE_DEFAUT,
       // Le coût reste au défaut de l'unité tant que personne ne l'a réglé :
       // `null` dit « celui de l'unité », et suit donc un changement d'unité.
-      cout: null,
+      cout: (isFinite(chiffre) && chiffre > 0) ? chiffre : null,
       supprime: false, majA: Date.now(), sale: true
     };
     categories.push(neuve);
@@ -579,6 +580,71 @@
     return barre;
   }
 
+  /**
+   * Le rythme visé d'une catégorie, et ce qu'il coûte par niveau.
+   *
+   * On demande le rythme, jamais le coût : « combien d'heures vaut un niveau »
+   * n'a pas de réponse — personne ne raisonne ainsi. « Combien de fois par
+   * semaine je vise » en a une, immédiate, et le coût s'en déduit.
+   *
+   * `compte` sert à l'avertissement : relever un coût fait **redescendre** un
+   * niveau déjà atteint. C'est acceptable quand on l'a décidé, jamais quand on
+   * le découvre — le niveau à venir est donc annoncé avant d'appliquer.
+   */
+  function reglageRythme(categorie, compte) {
+    var boite = elem('div', 'rythme');
+    var reglage = S.reglageDe(categorie.id, reglages());
+    var infos = S.UNITES[reglage.unite];
+
+    var champ = document.createElement('input');
+    champ.type = 'number';
+    champ.min = '0';
+    champ.step = String(infos.pas);
+    champ.inputMode = 'decimal';
+    champ.className = 'rythme-champ';
+    champ.value = String(Math.round(
+      S.rythmePourCout(reglage.cout, reglage.unite) * 100) / 100);
+
+    var suffixe = elem('span', 'rythme-suffixe', infos.parSemaine);
+    var resume = elem('span', 'rythme-resume', '');
+
+    function apercu() {
+      var futur = S.coutPourRythme(champ.value, reglage.unite) || reglage.cout;
+      var texte = S.coutLisible(futur, reglage.unite);
+      // Le niveau que ce coût donnerait, s'il change celui d'aujourd'hui.
+      if (compte) {
+        var apres = S.niveauPour(compte.valeur, futur).niveau;
+        if (apres !== compte.niveau.niveau) {
+          texte += ' · niveau ' + compte.niveau.niveau + ' → ' + apres;
+        }
+      }
+      resume.textContent = texte;
+    }
+
+    function appliquer() {
+      var futur = S.coutPourRythme(champ.value, reglage.unite);
+      if (!futur) { champ.value = String(S.rythmePourCout(reglage.cout, reglage.unite)); return; }
+      if (futur === categorie.cout) return;
+      categorie.cout = futur;
+      categorie.majA = Date.now();
+      categorie.sale = true;
+      ecrire(CLE_CATEGORIES, categories);
+      prevenir();
+      synchroniser();
+      dessinerProgression();
+    }
+
+    champ.addEventListener('input', apercu);
+    champ.addEventListener('change', appliquer);
+    apercu();
+
+    boite.appendChild(elem('span', 'rythme-nom', 'Rythme visé'));
+    boite.appendChild(champ);
+    boite.appendChild(suffixe);
+    boite.appendChild(resume);
+    return boite;
+  }
+
   function jauge(fraction) {
     var j = elem('div', 'jauge');
     var dedans = elem('span');
@@ -688,6 +754,7 @@
         synchroniser();
         dessinerProgression();
       }));
+      ligne.appendChild(reglageRythme(categorie, compte));
       lignes.appendChild(ligne);
     });
     el.progCorps.appendChild(lignes);
@@ -1240,8 +1307,8 @@
     entrees: entreesDe,
     ajouter: ajouterEntree,
     retirer: retirerEntree,
-    creerCategorie: function (nom, unite) {
-      var c = creerCategorie(nom, unite);
+    creerCategorie: function (nom, unite, cout) {
+      var c = creerCategorie(nom, unite, cout);
       if (c) { prevenir(); synchroniser(); }
       return c;
     },

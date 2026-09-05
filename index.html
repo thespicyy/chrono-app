@@ -14,13 +14,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>Chrono</title>
-<link rel="manifest" href="manifest.webmanifest?v=39"/>
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=39"/>
-<link rel="icon" type="image/png" href="icon-192.png?v=39"/>
-<link rel="stylesheet" href="flip.css?v=39"/>
-<link rel="stylesheet" href="chrono.css?v=39"/>
-<link rel="stylesheet" href="suivi.css?v=39"/>
-<link rel="stylesheet" href="tableau.css?v=39"/>
+<link rel="manifest" href="manifest.webmanifest?v=41"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=41"/>
+<link rel="icon" type="image/png" href="icon-192.png?v=41"/>
+<link rel="stylesheet" href="flip.css?v=41"/>
+<link rel="stylesheet" href="chrono.css?v=41"/>
+<link rel="stylesheet" href="suivi.css?v=41"/>
+<link rel="stylesheet" href="tableau.css?v=41"/>
 </head>
 <body>
 
@@ -139,7 +139,7 @@
 <div class="heure-coin" id="heure-coin" hidden></div>
 
 <!-- Signature de branding, comme en pied des autres applications NOIR. -->
-<img class="marque" src="brand.png?v=39" alt="NOIR">
+<img class="marque" src="brand.png?v=41" alt="NOIR">
 
 <!-- La face PORTRAIT : le tableau de progression. L'orientation choisit la
      face, et ce n'est pas un artifice — elle dit la posture. À l'horizontale,
@@ -168,6 +168,17 @@
   <div class="tab-neuve" id="tab-neuve" hidden>
     <input type="text" id="tab-neuve-nom" maxlength="40"
            placeholder="Muscu, vélo, lecture…"/>
+    <!-- Le rythme visé, plutôt que le coût d'un niveau. « Combien d'heures
+         vaut un niveau » n'a pas de réponse — personne ne raisonne ainsi.
+         « Combien de fois par semaine je vise » en a une, et le coût s'en
+         déduit : quatre semaines de rythme tenu valent un niveau. -->
+    <div class="rythme rythme-neuve">
+      <span class="rythme-nom">Rythme visé</span>
+      <input type="number" id="tab-neuve-rythme" class="rythme-champ"
+             min="0" inputmode="decimal"/>
+      <span class="rythme-suffixe" id="tab-neuve-suffixe"></span>
+      <span class="rythme-resume" id="tab-neuve-resume"></span>
+    </div>
     <div class="tab-neuve-pied">
       <div class="unites" id="tab-neuve-unites"></div>
       <button class="lien" id="tab-neuve-fermer" type="button">Annuler</button>
@@ -184,10 +195,10 @@
   </div>
 </section>
 
-<script src="timer.js?v=39"></script>
-<script src="suivi.js?v=39"></script>
-<script src="suivi-ui.js?v=39"></script>
-<script src="tableau.js?v=39"></script>
-<script src="chrono.js?v=39"></script>
+<script src="timer.js?v=41"></script>
+<script src="suivi.js?v=41"></script>
+<script src="suivi-ui.js?v=41"></script>
+<script src="tableau.js?v=41"></script>
+<script src="chrono.js?v=41"></script>
 </body>
 </html>

@@ -35,15 +35,57 @@
    * chaque palier récompense surtout les débuts et finit par rendre les niveaux
    * élevés hors d'atteinte ; ce n'est pas ce qu'on veut d'un suivi de vie, où
    * l'on cherche la régularité plutôt que la performance.
+   *
+   * Chaque unité porte son coût de niveau par défaut, le libellé de son rythme,
+   * et le rythme hebdomadaire qu'on propose à la création.
+   *
+   * `cout` est ce qu'appliquent les catégories qui n'ont jamais été réglées.
+   * Il reste à sa valeur d'origine et n'a pas suivi les rythmes proposés
+   * ci-dessous : le relever aurait fait **redescendre** des niveaux déjà
+   * atteints, en silence et sans que personne l'ait demandé.
    */
   var UNITES = {
-    //: Dix heures par niveau. La valeur d'une entrée est en MINUTES.
-    temps: { cout: 600 },
-    //: Vingt séances par niveau.
-    fois: { cout: 20 },
-    //: Deux cents kilomètres par niveau.
-    distance: { cout: 200 }
+    //: La valeur d'une entrée est en MINUTES ; le rythme, lui, se dit en heures
+    //: par semaine — personne ne vise « trois cents minutes ».
+    temps: { cout: 600, rythme: 5, parSemaine: 'h / semaine', pas: 0.5 },
+    fois: { cout: 20, rythme: 3, parSemaine: 'fois / semaine', pas: 1 },
+    distance: { cout: 200, rythme: 50, parSemaine: 'km / semaine', pas: 5 }
   };
+
+  /*
+   * QUATRE SEMAINES DE RYTHME TENU VALENT UN NIVEAU.
+   *
+   * « Combien d'heures vaut un niveau ? » n'a pas de réponse : personne ne
+   * raisonne en heures par niveau. « Combien de fois par semaine je vise ? »
+   * en a une, immédiate — et le coût s'en déduit.
+   *
+   * Un mois est le bon pas : assez fréquent pour encourager, assez rare pour
+   * vouloir dire quelque chose. Avec dix blasons, il place le dernier à dix
+   * mois de régularité — long, mais pas hors d'atteinte.
+   */
+  var SEMAINES_PAR_NIVEAU = 4;
+
+  /** Le coût d'un niveau, pour un rythme hebdomadaire visé. */
+  function coutPourRythme(rythme, unite) {
+    var r = Math.max(0, parseFloat(rythme) || 0);
+    if (!r) return null;
+    // Le temps se vise en heures et se compte en minutes.
+    var parUnite = (unite === 'temps') ? 60 : 1;
+    return r * parUnite * SEMAINES_PAR_NIVEAU;
+  }
+
+  /** Le rythme hebdomadaire qu'implique un coût de niveau. */
+  function rythmePourCout(cout, unite) {
+    var c = Math.max(0, parseFloat(cout) || 0);
+    if (!c) return 0;
+    var parUnite = (unite === 'temps') ? 60 : 1;
+    return c / parUnite / SEMAINES_PAR_NIVEAU;
+  }
+
+  /** « un niveau = 12 fois », « un niveau = 20 h ». */
+  function coutLisible(cout, unite) {
+    return 'un niveau = ' + formatValeur(cout, unite);
+  }
 
   var UNITE_DEFAUT = 'temps';
 
@@ -389,6 +431,10 @@
   return {
     MS_MINUTE: MS_MINUTE,
     UNITES: UNITES,
+    SEMAINES_PAR_NIVEAU: SEMAINES_PAR_NIVEAU,
+    coutPourRythme: coutPourRythme,
+    rythmePourCout: rythmePourCout,
+    coutLisible: coutLisible,
     UNITE_DEFAUT: UNITE_DEFAUT,
     BASE_CATEGORIE: BASE_CATEGORIE,
     BASE_GLOBALE: BASE_CATEGORIE,

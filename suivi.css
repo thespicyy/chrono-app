@@ -322,6 +322,36 @@
 }
 .unite.active{background:var(--text);border-color:var(--text);color:var(--bg);}
 
+/* Le rythme visé, et ce qu'il coûte par niveau. On demande le rythme et jamais
+   le coût : « combien d'heures vaut un niveau » n'a pas de réponse, « combien
+   de fois par semaine je vise » en a une. */
+.rythme{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+}
+.rythme-nom{
+  flex:0 0 auto;
+  color:var(--text2);font-weight:600;font-size:12px;
+}
+.rythme-champ{
+  flex:0 0 auto;width:72px;
+  padding:7px 10px;border-radius:10px;
+  border:1px solid var(--border-strong);background:var(--surface2);
+  color:var(--text);
+  font-family:inherit;font-weight:700;font-size:14px;
+  text-align:center;
+}
+.rythme-champ:focus{outline:none;border-color:var(--text);}
+.rythme-suffixe{
+  flex:0 0 auto;
+  color:var(--text2);font-weight:600;font-size:12px;
+}
+/* Le résumé passe à la ligne : il porte parfois un « niveau 3 → 2 » qu'on ne
+   veut surtout pas voir tronqué. */
+.rythme-resume{
+  flex:1 1 100%;
+  color:var(--text3);font-weight:600;font-size:12px;
+}
+
 /* Un interrupteur, pas une case à cocher : on le règle en regardant l'écran
    derrière, et sa position se lit sans avoir à décrypter une coche. */
 .bascule{display:flex;align-items:center;gap:12px;}
