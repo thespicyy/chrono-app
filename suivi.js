@@ -305,36 +305,65 @@
     });
   }
 
+  //: Combien de catégories portent le niveau général. Trois piliers : assez
+  //: pour exiger de l'équilibre, assez peu pour qu'une vie suffise à les tenir
+  //: au plus haut.
+  var PILIERS = 3;
+
   /**
-   * Niveau général : l'effort total, mesuré dans la même échelle que chacun.
+   * Niveau général : la **moyenne des trois meilleures** progressions.
    *
-   * L'unité commune est le **mois de rythme visé** : la valeur d'une catégorie
-   * divisée par le coût de son premier niveau. Un mois de muscu et un mois de
-   * SQL pèsent alors exactement pareil, quelles que soient leurs unités — et
-   * c'est la seule équivalence défendable entre des séances et des heures.
+   * Deux règles ont été essayées avant, et toutes deux disaient autre chose que
+   * ce qu'on attend d'un « niveau général ».
    *
-   * ADDITIONNER LES NIVEAUX ÉTAIT FAUX, et se voyait : quatre catégories au
-   * niveau 2 — un mois chacune — donnaient un général de 5, autant qu'une
-   * pratique de seize mois. Depuis que l'échelle est courbe, deux niveaux de
-   * même rang ne coûtent plus la même chose : le cinquième palier vaut neuf
-   * mois, le premier en vaut un. Les sommer revenait à les tenir pour égaux, et
-   * la largeur se payait au prix de la profondeur.
+   * — Additionner les niveaux payait la largeur au prix de la profondeur :
+   *   quatre catégories débutantes valaient seize mois de pratique.
+   * — Additionner les efforts faisait du général un synonyme de la plus grosse
+   *   catégorie : niveau 6 au général avec un seul 6 et trois catégories à 1.
    *
-   * Sur une catégorie unique, le général vaut **exactement** le sien — la même
-   * courbe appliquée à la même quantité.
+   * Une moyenne dit ce qu'on cherche — où j'en suis dans l'ensemble — mais la
+   * moyenne de TOUTES punit le commencement : le jour où l'on crée une
+   * catégorie, le général baisse. Une mécanique qui sanctionne le fait de se
+   * lancer est exactement celle qui fait cesser d'ouvrir une application.
+   *
+   * N'en retenir que trois lève la sanction sans rien perdre : une catégorie
+   * neuve n'entre au calcul que si elle dépasse la troisième, donc **créer ne
+   * peut jamais faire baisser le général**. Et le niveau 10 reste atteignable —
+   * il demande trois pratiques au sommet, non la totalité.
+   *
+   * Sur une catégorie unique, le général vaut le sien, dilué par les deux
+   * places vides : c'est voulu. Un seul pilier ne fait pas un ensemble.
    */
   function niveauGlobal(categories) {
+    var progressions = categories.map(function (c) {
+      return (c.niveau.niveau - 1) + c.niveau.fraction;
+    });
+    // Les places non pourvues comptent pour zéro : sans cela, une première
+    // catégorie donnerait d'emblée un général égal au sien.
+    while (progressions.length < PILIERS) progressions.push(0);
+    progressions.sort(function (a, b) { return b - a; });
+
+    var retenues = progressions.slice(0, PILIERS);
+    var moyenne = retenues.reduce(function (s, p) { return s + p; }, 0) / PILIERS;
+    var entier = Math.floor(moyenne);
+
     var mois = categories.reduce(function (somme, c) {
       return somme + (c.cout > 0 ? c.valeur / c.cout : 0);
     }, 0);
-    var n = niveauPour(mois, 1);
+
     return {
-      niveau: n.niveau,
-      // Le total d'effort, en mois de rythme visé, toutes catégories confondues.
-      points: mois,
+      niveau: 1 + entier,
+      piliers: PILIERS,
+      // Les trois progressions retenues, dans l'ordre : c'est ce qui rend le
+      // niveau vérifiable. Un général qu'on ne peut pas recalculer de tête ne
+      // peut être ni confirmé ni contesté.
+      retenues: retenues,
+      // La moyenne retenue, et l'effort total — l'un explique le niveau, l'autre
+      // dit ce qu'on a réellement fait.
+      points: moyenne,
       mois: mois,
-      fraction: n.fraction,
-      pourSuivant: n.pourSuivant
+      fraction: moyenne - entier,
+      pourSuivant: 1 - (moyenne - entier)
     };
   }
 
@@ -480,6 +509,7 @@
     MS_MINUTE: MS_MINUTE,
     UNITES: UNITES,
     SEMAINES_PAR_NIVEAU: SEMAINES_PAR_NIVEAU,
+    PILIERS: PILIERS,
     EXPOSANT: EXPOSANT,
     coutPourRythme: coutPourRythme,
     rythmePourCout: rythmePourCout,

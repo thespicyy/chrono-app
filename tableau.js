@@ -455,16 +455,15 @@
     majBlason(p.blason, etat.global.niveau);
     texte(p.rang, 'Niveau ' + etat.global.niveau);
     largeurJauge(p.jauge, etat.global.fraction);
-    // L'effort total est écrit, et pas seulement le niveau qu'il donne : un
-    // niveau général qui surprend doit pouvoir être vérifié. Sans ce nombre, il
-    // tombe d'un calcul qu'on ne peut ni refaire ni contester.
+    // Les trois piliers sont écrits, et pas seulement le niveau qu'ils donnent :
+    // un général qui surprend doit pouvoir être recalculé de tête. Sans eux, il
+    // ne peut être ni confirmé ni contesté — c'est ce qui a coûté trois
+    // échanges avant qu'on trouve la bonne règle.
     texte(p.detail,
-      S.formatEffort(etat.global.mois) +
+      'Tes 3 meilleures : ' +
+      etat.global.retenues.map(function (v) { return Math.floor(v) + 1; }).join(' · ') +
       ' · ' + Math.round(etat.global.fraction * 100) + ' % du niveau ' +
-      (etat.global.niveau + 1) +
-      (etat.serie > 0
-        ? ' · ' + etat.serie + (etat.serie > 1 ? ' jours de suite' : ' jour')
-        : ''));
+      (etat.global.niveau + 1));
   }
 
   function dessiner() {

@@ -470,9 +470,10 @@
     // vingt séances de muscu valent chacune un point. Le dire en heures serait
     // faux dès la deuxième catégorie.
     cote.appendChild(elem('div', 'general-reste',
-      Math.round(agr.global.fraction * 100) + ' % du niveau ' +
-      (agr.global.niveau + 1) + ' · ' +
-      S.formatDuree(agr.total * S.MS_MINUTE) + ' chronométrées'));
+      'Moyenne de tes ' + agr.global.piliers + ' meilleures : ' +
+      agr.global.retenues.map(function (v) { return Math.floor(v) + 1; }).join(' · ') +
+      ' · ' + Math.round(agr.global.fraction * 100) + ' % du niveau ' +
+      (agr.global.niveau + 1)));
     general.appendChild(cote);
     el.progCorps.appendChild(general);
 
