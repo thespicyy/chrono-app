@@ -42,7 +42,8 @@
     neuveRythme: document.getElementById('tab-neuve-rythme'),
     neuveSuffixe: document.getElementById('tab-neuve-suffixe'),
     neuveResume: document.getElementById('tab-neuve-resume'),
-    reglages: document.getElementById('tab-reglages')
+    reglages: document.getElementById('tab-reglages'),
+    fermer: document.getElementById('tab-fermer')
   };
   if (!el.tableau) return;
 
@@ -320,6 +321,28 @@
   // Ouvre les CATÉGORIES, pas la progression : celle-ci est déjà la page qu'on
   // a sous les yeux, et la rouvrir par-dessus donnait deux fois le même écran.
   el.reglages.addEventListener('click', function () { U.ouvrirCategories(); });
+
+  // ── Surcouche, pour la face paysage ─────────────────────────────────────
+  //
+  // En portrait, cette page EST l'application : elle n'a rien à ouvrir ni à
+  // fermer. En paysage, on la pose au-dessus de l'horloge le temps de la
+  // consulter — même page, même code, autre hôte.
+
+  function ouvrirSurcouche() {
+    dessiner();
+    el.tableau.classList.add('ouvert');
+  }
+
+  function fermerSurcouche() {
+    el.tableau.classList.remove('ouvert');
+  }
+
+  el.fermer.addEventListener('click', fermerSurcouche);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && el.tableau.classList.contains('ouvert')) {
+      fermerSurcouche();
+    }
+  });
 
   // ── Rendu ───────────────────────────────────────────────────────────────
   //
@@ -599,5 +622,11 @@
 
   // Exposé pour les tests, qui doivent pouvoir forcer un rendu sans attendre
   // un événement d'orientation que le pilote ne produit pas.
-  window.Tableau = { dessiner: dessiner, enPortrait: enPortrait };
+  window.Tableau = {
+    dessiner: dessiner,
+    enPortrait: enPortrait,
+    ouvrir: ouvrirSurcouche,
+    fermer: fermerSurcouche,
+    ouvert: function () { return el.tableau.classList.contains('ouvert'); }
+  };
 })();

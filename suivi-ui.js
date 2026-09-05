@@ -216,9 +216,10 @@
   var abonnes = [];
 
   var attente = fileAttente();
-  var vueProgression = 'progression';   // 'progression' | 'categories' | 'synchro'
+  var vueProgression = 'categories';   // 'categories' | 'synchro'
 
   function ouvert() {
+    if (window.Tableau && window.Tableau.ouvert()) return true;
     return !el.voileFin.hidden || !el.voileProg.hidden;
   }
 
@@ -384,21 +385,27 @@
 
   // ── Progression ─────────────────────────────────────────────────────────
 
+  /**
+   * La progression a UN SEUL lieu : la page de `tableau.js`.
+   *
+   * Elle était rendue ici aussi, dans un panneau — deux mises en page d'une
+   * même information, dont l'une se rouvrait par-dessus l'autre. Ce panneau ne
+   * sert plus qu'aux catégories et à la synchronisation.
+   */
   function ouvrirProgression() {
-    vueProgression = 'progression';
-    dessinerProgression();
-    el.voileProg.hidden = false;
+    if (window.Tableau) { window.Tableau.ouvrir(); return; }
+    ouvrirCategories();
   }
 
   function fermerProgression() { el.voileProg.hidden = true; }
 
   el.progFermer.addEventListener('click', fermerProgression);
   el.progCategories.addEventListener('click', function () {
-    vueProgression = vueProgression === 'categories' ? 'progression' : 'categories';
+    vueProgression = 'categories';
     dessinerProgression();
   });
   el.progSynchro.addEventListener('click', function () {
-    vueProgression = vueProgression === 'synchro' ? 'progression' : 'synchro';
+    vueProgression = 'synchro';
     dessinerProgression();
   });
 
@@ -412,139 +419,20 @@
   }
 
   /**
-   * « 3h21 », « 45m ». La forme longue de `formatDuree` — « 3 h 21 » — ne tient
-   * pas dans une colonne large d'un septième de panneau : elle y reviendrait à
-   * la ligne, ou déborderait sur sa voisine.
+   * Le panneau ne montre plus que ce que la page de progression ne montre
+   * pas. Elle était rendue ici aussi, en double, et l'un des deux écrans se
+   * rouvrait par-dessus l'autre.
    */
-  function compact(ms) {
-    var minutes = Math.round(ms / S.MS_MINUTE);
-    var heures = Math.floor(minutes / 60);
-    var reste = minutes % 60;
-    if (!heures) return minutes + 'm';
-    if (!reste) return heures + 'h';
-    return heures + 'h' + (reste < 10 ? '0' : '') + reste;
-  }
-
   function dessinerProgression() {
     vider(el.progCorps);
-    if (vueProgression === 'categories') { el.progTitre.textContent = 'Catégories'; dessinerCategories(); return; }
-    if (vueProgression === 'synchro') { el.progTitre.textContent = 'Synchronisation'; dessinerSynchro(); return; }
-    el.progTitre.textContent = 'Progression';
-
-    var agr = bilan();
-
-    if (!agr.sessions) {
-      el.progCorps.appendChild(elem('p', 'vide',
-        'Rien de compté pour l\'instant. À la fin d\'un minuteur, ou quand tu ' +
-        'remets le chronomètre à zéro, on te demandera sur quoi tu as travaillé.'));
+    if (vueProgression === 'synchro') {
+      el.progTitre.textContent = 'Synchronisation';
+      dessinerSynchro();
       return;
     }
-
-    // Les trois totaux de temps sont en minutes, et ne comptent que les
-    // catégories mesurées en temps : additionner des séances de muscu à des
-    // heures de SQL ne donnerait pas un total plus riche, mais un nombre qui
-    // n'a pas de sens et qui aurait l'air d'en avoir un.
-    var totaux = elem('div', 'totaux');
-    [['Aujourd\'hui', S.formatDuree(agr.jour * S.MS_MINUTE)],
-     ['Cette semaine', S.formatDuree(agr.semaine * S.MS_MINUTE)],
-     ['Série', agr.serie + (agr.serie > 1 ? ' jours' : ' jour')]
-    ].forEach(function (paire) {
-      var carte = elem('div', 'total');
-      carte.appendChild(elem('div', 'total-valeur', paire[1]));
-      carte.appendChild(elem('div', 'total-nom', paire[0]));
-      totaux.appendChild(carte);
-    });
-    el.progCorps.appendChild(totaux);
-
-    // Niveau général : le blason en grand, c'est la récompense qu'on vient
-    // regarder. Le reste l'accompagne, il ne le remplace pas.
-    var general = elem('div', 'general');
-    general.appendChild(blason(agr.global.niveau, 'grand'));
-    var cote = elem('div', 'general-cote');
-    cote.appendChild(elem('div', 'general-rang', 'Niveau ' + agr.global.niveau));
-    cote.appendChild(elem('div', 'general-nom',
-                          S.formatEffort(agr.global.mois)));
-    cote.appendChild(jauge(agr.global.fraction));
-    // Le reste général s'exprime en pourcentage, et non en heures : il
-    // additionne des progressions d'unités différentes — dix heures de SQL et
-    // vingt séances de muscu valent chacune un point. Le dire en heures serait
-    // faux dès la deuxième catégorie.
-    cote.appendChild(elem('div', 'general-reste',
-      'Moyenne de tes ' + agr.global.piliers + ' meilleures : ' +
-      agr.global.retenues.map(function (v) { return Math.floor(v) + 1; }).join(' · ') +
-      ' · ' + Math.round(agr.global.fraction * 100) + ' % du niveau ' +
-      (agr.global.niveau + 1)));
-    general.appendChild(cote);
-    el.progCorps.appendChild(general);
-
-    // Sept derniers jours.
-    var maxi = agr.jours.reduce(function (m, j) { return Math.max(m, j.ms); }, 0);
-    var semaine = elem('div', 'semaine');
-    var LETTRES = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-    agr.jours.forEach(function (j) {
-      var colonne = elem('div', 'barre-jour' + (j.ms > 0 ? ' travaille' : ''));
-      // La durée au-dessus de la barre. Sept rectangles nus se comparent entre
-      // eux, mais ne disent jamais combien : c'est pourtant la seule question
-      // qu'on pose à un tel graphique.
-      colonne.appendChild(elem('b', null, j.ms > 0 ? compact(j.ms) : '·'));
-      var fut = elem('div', 'fut');
-      var barre = elem('i');
-      // Une part de la plus longue journée : l'échelle absolue rendrait toutes
-      // les colonnes minuscules dès qu'une journée sort du lot.
-      barre.style.height = (maxi > 0 ? Math.max(3, Math.round(100 * j.ms / maxi)) : 3) + '%';
-      fut.appendChild(barre);
-      colonne.appendChild(fut);
-      var d = new Date(j.jour + 'T12:00:00');
-      colonne.appendChild(elem('u', null, LETTRES[(d.getDay() + 6) % 7]));
-      semaine.appendChild(colonne);
-    });
-    el.progCorps.appendChild(semaine);
-
-    // Par catégorie.
-    var lignes = elem('div', 'lignes');
-    agr.categories.forEach(function (c) {
-      var ligne = elem('div', 'ligne ligne-blason');
-      ligne.appendChild(blason(c.niveau.niveau));
-      var corps = elem('div', 'ligne-corps');
-      var tete = elem('div', 'ligne-tete');
-      tete.appendChild(elem('span', 'ligne-nom', nomDe(c.categorie)));
-      tete.appendChild(elem('span', 'ligne-temps',
-                           S.formatValeur(c.valeur, c.unite)));
-      corps.appendChild(tete);
-      corps.appendChild(jauge(c.niveau.fraction));
-      corps.appendChild(elem('div', 'ligne-pied',
-        'Niveau ' + c.niveau.niveau + ' · ' +
-        S.formatValeur(c.niveau.pourSuivant, c.unite) +
-        ' avant le ' + (c.niveau.niveau + 1)));
-      ligne.appendChild(corps);
-      lignes.appendChild(ligne);
-    });
-    el.progCorps.appendChild(lignes);
+    el.progTitre.textContent = 'Catégories';
+    dessinerCategories();
   }
-
-  //: Il existe dix blasons ; au-delà, le dernier sert de plafond. Le nombre
-  //: écrit au centre reste le vrai niveau : c'est le blason qui plafonne, pas
-  //: la progression.
-  var BLASONS = 10;
-
-  /**
-   * Le blason d'un niveau.
-   *
-   * Il ne porte aucun chiffre : le dessin parle de lui-même, et le niveau est
-   * écrit à côté. Le nombre a d'abord été posé au centre, ce qui obligeait à
-   * effacer l'emblème du disque — on rendait le blason moins beau pour y loger
-   * une information qui tenait très bien ailleurs.
-   */
-  function blason(niveau, taille) {
-    var boite = elem('div', 'blason' + (taille ? ' blason-' + taille : ''));
-    var image = document.createElement('img');
-    var rang = Math.max(1, Math.min(BLASONS, niveau));
-    image.src = 'badges/badge-' + (rang < 10 ? '0' : '') + rang + '.png';
-    image.alt = 'Niveau ' + niveau;
-    boite.appendChild(image);
-    return boite;
-  }
-
   //: Le libellé de chaque unité, et le geste qu'elle implique. L'ordre est
   //: celui de leur fréquence : la plupart des catégories se comptent en fois.
   var LIBELLES_UNITE = [
@@ -645,14 +533,6 @@
     boite.appendChild(suffixe);
     boite.appendChild(resume);
     return boite;
-  }
-
-  function jauge(fraction) {
-    var j = elem('div', 'jauge');
-    var dedans = elem('span');
-    dedans.style.width = Math.round(100 * Math.max(0, Math.min(1, fraction))) + '%';
-    j.appendChild(dedans);
-    return j;
   }
 
   // ── Catégories ──────────────────────────────────────────────────────────
@@ -1329,7 +1209,13 @@
     ouvrirProgression: ouvrirProgression,
     ouvrirSynchro: ouvrirSynchro,
     ouvrirCategories: ouvrirCategories,
-    fermer: function () { fermerFin(); fermerProgression(); },
+    fermer: function () {
+      fermerFin();
+      fermerProgression();
+      // La surcouche de progression fait partie de « ce qui est ouvert » :
+      // `ouvert()` la compte, `fermer()` doit donc la fermer.
+      if (window.Tableau) window.Tableau.fermer();
+    },
     ouvert: ouvert,
     // ── Ce que consomme la face portrait ──
     etat: etat,

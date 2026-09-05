@@ -12,29 +12,62 @@
  * place et ne reçoit aucune tape.
  */
 
-.tableau{display:none;}
+/*
+ * UNE SEULE PAGE DE PROGRESSION, ET ELLE EST ICI.
+ *
+ * Elle occupe l'écran en portrait, et se pose en surcouche en paysage quand on
+ * la demande. Il y avait avant deux écrans montrant la même chose — cette page
+ * et un panneau « Progression » — dont l'un se rouvrait par-dessus l'autre.
+ * Deux mises en page d'une même information finissent toujours par diverger ;
+ * il n'en reste qu'une, et elle change seulement d'hôte.
+ */
+.tableau{
+  display:none;flex-direction:column;
+  position:fixed;inset:0;
+  /* Sous les voiles (10) : les catégories et la synchronisation s'ouvrent
+     par-dessus elle, jamais l'inverse. */
+  z-index:9;
+  background:var(--bg);
+  /* Marges latérales égales, comme la scène : sur un appareil dont l'encoche
+     n'est que d'un côté, prendre chaque marge de son côté décentre tout. */
+  padding:max(env(safe-area-inset-top),14px)
+          max(env(safe-area-inset-right),env(safe-area-inset-left),16px)
+          max(env(safe-area-inset-bottom),14px)
+          max(env(safe-area-inset-right),env(safe-area-inset-left),16px);
+  gap:14px;
+  /* Rogne l'excédent de `.tab-corps` : voir « la géométrie » dans chrono.css. */
+  overflow:hidden;
+}
+
+/* Demandée depuis la face paysage. */
+.tableau.ouvert{display:flex;}
+
+/* Sur un écran large, la colonne est ramenée au centre par ses marges plutôt
+   que par une largeur maximale posée sur son contenu : les zones qui défilent
+   débordent volontairement de trente-deux pixels pour cacher leur barre, et
+   les plafonner désalignerait l'en-tête du corps. */
+@media (orientation: landscape){
+  .tableau.ouvert{
+    padding-left:max(env(safe-area-inset-right),env(safe-area-inset-left),16px,
+                     calc((100% - 720px) / 2));
+    padding-right:max(env(safe-area-inset-right),env(safe-area-inset-left),16px,
+                      calc((100% - 720px) / 2));
+  }
+}
+
+/* Le bouton « Fermer » n'a de sens que posée sur autre chose : en portrait,
+   elle n'est pas une surcouche, elle est la page. */
+.tab-fermer{display:none;}
+.tableau.ouvert .tab-fermer{display:block;}
 
 @media (orientation: portrait){
-
   /* En portrait, la scène et ses commandes disparaissent entièrement. Les
      masquer sans les retirer laisserait des boutons invisibles sous les
      lignes : un bouton qu'on presse sans le voir est pire qu'un bouton
      absent. */
   .scene,.barre,.durees,.coin,.heure-coin,.marque{display:none !important;}
 
-  .tableau{
-    display:flex;flex-direction:column;
-    position:fixed;inset:0;
-    /* Marges latérales égales, comme la scène : sur un appareil dont l'encoche
-       n'est que d'un côté, prendre chaque marge de son côté décentre tout. */
-    padding:max(env(safe-area-inset-top),14px)
-            max(env(safe-area-inset-right),env(safe-area-inset-left),16px)
-            max(env(safe-area-inset-bottom),14px)
-            max(env(safe-area-inset-right),env(safe-area-inset-left),16px);
-    gap:14px;
-    /* Rogne l'excédent de `.tab-grille` : voir « la géométrie » dans chrono.css. */
-    overflow:hidden;
-  }
+  .tableau{display:flex;}
 }
 
 /* ------------------------------------------------------------- en-tête */
