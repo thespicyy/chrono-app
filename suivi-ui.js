@@ -1210,6 +1210,19 @@
   if (attente.length) montrerAttente();
 
   // ── Interface publique ──────────────────────────────────────────────────
+  /**
+   * Ouvre le panneau sur les catégories.
+   *
+   * En portrait, la page principale EST la progression : y rouvrir un panneau
+   * qui la réaffiche donnait deux fois le même écran, l'un par-dessus l'autre.
+   * Le bouton n'ouvre donc que ce que la page principale ne montre pas.
+   */
+  function ouvrirCategories() {
+    vueProgression = 'categories';
+    dessinerProgression();
+    el.voileProg.hidden = false;
+  }
+
   function ouvrirSynchro() {
     vueProgression = 'synchro';
     dessinerProgression();
@@ -1315,6 +1328,7 @@
     proposer: proposer,
     ouvrirProgression: ouvrirProgression,
     ouvrirSynchro: ouvrirSynchro,
+    ouvrirCategories: ouvrirCategories,
     fermer: function () { fermerFin(); fermerProgression(); },
     ouvert: ouvert,
     // ── Ce que consomme la face portrait ──

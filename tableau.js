@@ -317,7 +317,9 @@
     if (e.key === 'Enter') { e.preventDefault(); creerNeuve(); }
   });
 
-  el.reglages.addEventListener('click', function () { U.ouvrirProgression(); });
+  // Ouvre les CATÉGORIES, pas la progression : celle-ci est déjà la page qu'on
+  // a sous les yeux, et la rouvrir par-dessus donnait deux fois le même écran.
+  el.reglages.addEventListener('click', function () { U.ouvrirCategories(); });
 
   // ── Rendu ───────────────────────────────────────────────────────────────
   //
