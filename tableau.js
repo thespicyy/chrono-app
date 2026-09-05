@@ -382,10 +382,17 @@
     // par minute, et un `+1` finirait par en compter plusieurs.
     bouton.addEventListener('click', function () {
       if (bouton.longAppui) { bouton.longAppui = false; return; }
-      if (Date.now() < geleJusqua) return;
       var c = bouton.categorie;
       if (!c) return;
-      if (c.unite === 'temps') { U.ouvrirProgression(); return; }
+      // Une catégorie de temps ne se compte pas d'une tape : son historique
+      // est ce qu'on vient y chercher. Ouvrir la progression générale, comme
+      // au début, répondait à côté de la question posée par le geste.
+      if (c.unite === 'temps') { ouvrirCorrection(c); return; }
+      // Le gel est posé APRÈS ce qui n'écrit rien. Il existe pour empêcher une
+      // tape égarée d'entrer une séance au journal, pas pour rendre la grille
+      // inerte — placé plus haut, il bloquait aussi l'ouverture d'un
+      // historique, ce que le commentaire qui l'accompagne dément.
+      if (Date.now() < geleJusqua) return;
       // Un kilométrage ne se devine pas ; une séance, si. Pour la distance, on
       // demande le nombre — c'est le seul endroit où une saisie est inévitable.
       var valeur = 1;
