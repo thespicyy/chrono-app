@@ -29,7 +29,7 @@
 
   var el = {
     tableau: document.getElementById('tableau'),
-    tete: document.getElementById('tab-tete-vue'),
+
     corps: document.getElementById('tab-corps'),
     annuler: document.getElementById('tab-annuler'),
     annulerTexte: document.getElementById('tab-annuler-texte'),
@@ -74,8 +74,8 @@
     return 'badges/badge-' + (rang < 10 ? '0' : '') + rang + '.png';
   }
 
-  function blason(niveau) {
-    var boite = elem('div', 'blason');
+  function blason(niveau, taille) {
+    var boite = elem('div', 'blason' + (taille ? ' blason-' + taille : ''));
     var image = document.createElement('img');
     image.src = sourceBlason(niveau);
     image.alt = 'Niveau ' + niveau;
@@ -464,36 +464,51 @@
           c.aujourdhui > 0 ? '+' + S.formatValeur(c.aujourdhui, c.unite) : '');
   }
 
-  /** L'en-tête : le blason en grand, le niveau, et de quoi le vérifier. */
-  function dessinerTete(etat) {
-    if (!el.tete.parts) {
-      var boite = blason(1);
-      var corps = elem('div', 'tab-tete-corps');
+  /**
+   * Le niveau général : le blason en grand, le reste à côté.
+   *
+   * IL EST DANS LE CORPS, PAS DANS L'EN-TÊTE. Logé là-haut, il était contraint
+   * à la hauteur d'une barre de titre — et ce qu'on vient voir en ouvrant la
+   * page devenait une ligne d'état. C'est le blason en grand qui donne envie
+   * d'y revenir ; le reste l'accompagne.
+   *
+   * Le nœud est **persistant** : reconstruit à chaque rendu, son image
+   * repasserait par le chargement et clignoterait à chaque `+1`.
+   */
+  function dessinerGeneral(etat) {
+    if (!el.general) {
+      var boite = blason(1, 'grand');
+      var cote = elem('div', 'general-cote');
       var parts = {
         blason: boite,
-        rang: elem('div', 'tab-rang', ''),
+        rang: elem('div', 'general-rang', ''),
         jauge: jauge(0),
-        detail: elem('div', 'tab-detail', '')
+        reste: elem('div', 'general-reste', '')
       };
-      corps.appendChild(parts.rang);
-      corps.appendChild(parts.jauge);
-      corps.appendChild(parts.detail);
-      el.tete.appendChild(boite);
-      el.tete.appendChild(corps);
-      el.tete.parts = parts;
+      cote.appendChild(parts.rang);
+      cote.appendChild(parts.jauge);
+      cote.appendChild(parts.reste);
+
+      el.general = elem('div', 'general');
+      el.general.appendChild(boite);
+      el.general.appendChild(cote);
+      el.general.parts = parts;
     }
-    var p = el.tete.parts;
+    var p = el.general.parts;
     majBlason(p.blason, etat.global.niveau);
     texte(p.rang, 'Niveau ' + etat.global.niveau);
     largeurJauge(p.jauge, etat.global.fraction);
     // Les trois piliers sont écrits, et pas seulement le niveau qu'ils donnent :
     // un général qui surprend doit pouvoir être recalculé de tête. Sans eux, il
     // ne peut être ni confirmé ni contesté.
-    texte(p.detail,
+    texte(p.reste,
       'Tes ' + etat.global.piliers + ' meilleures : ' +
       etat.global.retenues.map(function (v) { return Math.floor(v) + 1; }).join(' · ') +
       ' · ' + Math.round(etat.global.fraction * 100) + ' % du niveau ' +
       (etat.global.niveau + 1));
+    if (el.corps.firstChild !== el.general) {
+      el.corps.insertBefore(el.general, el.corps.firstChild);
+    }
   }
 
   /** Les trois totaux : aujourd'hui, la semaine, la série. */
@@ -544,7 +559,7 @@
 
   function dessiner() {
     var etat = U.etat();
-    dessinerTete(etat);
+    dessinerGeneral(etat);
 
     if (!ligneNeuve) {
       ligneNeuve = elem('button', 'ligne ligne-bouton ligne-neuve', '+ Catégorie');
@@ -565,7 +580,7 @@
       el.resume.appendChild(dessinerTotaux(etat));
       el.resume.appendChild(dessinerSemaine(etat));
     }
-    el.corps.insertBefore(el.resume, el.corps.firstChild);
+    el.corps.insertBefore(el.resume, el.general.nextSibling);
 
     var vues = {};
     var precedente = el.resume;

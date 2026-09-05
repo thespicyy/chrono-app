@@ -15,15 +15,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <!-- Injectée à la construction. Sans elle, « je suis à jour ? » n'a pas de
      réponse : on compare des symptômes au lieu de lire un numéro. -->
-<meta name="chrono-version" content="57"/>
+<meta name="chrono-version" content="58"/>
 <title>Chrono</title>
-<link rel="manifest" href="manifest.webmanifest?v=57"/>
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=57"/>
-<link rel="icon" type="image/png" href="icon-192.png?v=57"/>
-<link rel="stylesheet" href="flip.css?v=57"/>
-<link rel="stylesheet" href="chrono.css?v=57"/>
-<link rel="stylesheet" href="suivi.css?v=57"/>
-<link rel="stylesheet" href="tableau.css?v=57"/>
+<link rel="manifest" href="manifest.webmanifest?v=58"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=58"/>
+<link rel="icon" type="image/png" href="icon-192.png?v=58"/>
+<link rel="stylesheet" href="flip.css?v=58"/>
+<link rel="stylesheet" href="chrono.css?v=58"/>
+<link rel="stylesheet" href="suivi.css?v=58"/>
+<link rel="stylesheet" href="tableau.css?v=58"/>
 </head>
 <body>
 
@@ -142,7 +142,7 @@
 <div class="heure-coin" id="heure-coin" hidden></div>
 
 <!-- Signature de branding, comme en pied des autres applications NOIR. -->
-<img class="marque" src="brand.png?v=57" alt="NOIR">
+<img class="marque" src="brand.png?v=58" alt="NOIR">
 
 <!-- La face PORTRAIT : le tableau de progression. L'orientation choisit la
      face, et ce n'est pas un artifice — elle dit la posture. À l'horizontale,
@@ -154,15 +154,21 @@
   <!-- Le bouton des réglages est dans le balisage, hors de la zone redessinée :
        un bouton reconstruit à chaque rendu perdrait son écouteur, ou en
        gagnerait un de plus à chaque fois. -->
+  <!-- Un en-tête mince : le blason et le niveau appartiennent au corps, en
+       grand, parce que c'est ce qu'on vient voir. Logés dans l'en-tête, ils
+       étaient contraints à sa hauteur — et ce qui devait motiver devenait une
+       ligne d'état. -->
   <header class="tab-tete">
-    <div class="tab-tete-vue" id="tab-tete-vue"></div>
-    <button class="lien tab-fermer" id="tab-fermer" type="button">Fermer</button>
-    <button class="tab-reglages" id="tab-reglages" type="button"
-            aria-label="Catégories et synchronisation">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
-      </svg>
-    </button>
+    <p class="panneau-titre">Progression</p>
+    <div class="tab-actions">
+      <button class="lien tab-fermer" id="tab-fermer" type="button">Fermer</button>
+      <button class="tab-reglages" id="tab-reglages" type="button"
+              aria-label="Catégories et synchronisation">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <!-- Un seul écran, celui de la progression, rendu vivant : chaque ligne se
@@ -203,10 +209,10 @@
   </div>
 </section>
 
-<script src="timer.js?v=57"></script>
-<script src="suivi.js?v=57"></script>
-<script src="suivi-ui.js?v=57"></script>
-<script src="tableau.js?v=57"></script>
-<script src="chrono.js?v=57"></script>
+<script src="timer.js?v=58"></script>
+<script src="suivi.js?v=58"></script>
+<script src="suivi-ui.js?v=58"></script>
+<script src="tableau.js?v=58"></script>
+<script src="chrono.js?v=58"></script>
 </body>
 </html>
