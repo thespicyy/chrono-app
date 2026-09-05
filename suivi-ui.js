@@ -160,13 +160,13 @@
   }
 
   /**
-   * L'unité et le coût de chaque catégorie, **par libellé** : c'est la forme
-   * qu'attend le moteur, qui agrège par nom et ne connaît pas les identifiants.
+   * L'unité et le coût de chaque catégorie, **par identifiant** — la même clé
+   * que celle sous laquelle le moteur agrège.
    */
   function reglages() {
     var carte = {};
     categories.forEach(function (c) {
-      carte[c.nom] = { unite: c.unite, cout: c.cout };
+      carte[c.id] = { unite: c.unite, cout: c.cout };
     });
     return carte;
   }
@@ -179,7 +179,7 @@
    * lève rien — tout redeviendrait simplement du temps, en silence.
    */
   function bilan() {
-    return S.agregats(journalAvecNoms(), Date.now(), reglages());
+    return S.agregats(journalVivant(), Date.now(), reglages());
   }
 
   // ── Éléments ────────────────────────────────────────────────────────────
@@ -264,8 +264,8 @@
 
   function dessinerChoix() {
     var agr = bilan();
-    var parNom = {};
-    agr.categories.forEach(function (c) { parNom[c.categorie] = c; });
+    var parId = {};
+    agr.categories.forEach(function (c) { parId[c.categorie] = c; });
 
     el.finChoix.innerHTML = '';
     categoriesVives().forEach(function (categorie) {
@@ -273,7 +273,7 @@
       bouton.type = 'button';
       bouton.className = 'categorie';
       bouton.appendChild(document.createTextNode(categorie.nom));
-      var connue = parNom[categorie.nom];
+      var connue = parId[categorie.id];
       var rang = document.createElement('span');
       rang.className = 'rang';
       rang.textContent = 'niv. ' + (connue ? connue.niveau.niveau : 1);
@@ -315,16 +315,31 @@
   }
 
   /*
-   * Le journal garde l'identifiant de la catégorie, pas son nom : renommer
-   * « SQL » en « Bases de données » ne doit pas couper l'historique en deux.
-   * Le moteur, lui, agrège par libellé — on lui passe donc une vue résolue.
+   * Le journal tel que le moteur doit le voir : **par identifiant**, et amputé
+   * des catégories supprimées.
+   *
+   * DEUX DÉFAUTS RÉGLÉS ICI, ET C'ÉTAIT LE MÊME. On passait au moteur un
+   * journal où l'identifiant était remplacé par le libellé, pour qu'il agrège
+   * sous un nom lisible. Deux conséquences, toutes deux constatées :
+   *
+   * — une catégorie supprimée disparaissait des tuiles mais **continuait de
+   *   compter** dans la progression, puisque ses entrées portaient toujours son
+   *   nom et que rien ne disait qu'elle n'existait plus ;
+   * — recréer une catégorie du même nom lui rendait **tout l'historique de
+   *   l'ancienne** : elle naissait avec un total, ce qui ressemblait fort à un
+   *   compteur initialisé de travers.
+   *
+   * L'identifiant, lui, ne se recycle jamais. Le libellé n'est plus qu'un
+   * affichage, ce qu'il aurait dû rester : renommer ne coupe toujours pas
+   * l'historique, et deux catégories homonymes ne se confondent plus.
    */
-  function journalAvecNoms() {
-    return journal.map(function (e) {
-      var copie = {};
-      Object.keys(e).forEach(function (cle) { copie[cle] = e[cle]; });
-      copie.categorie = nomDe(e.categorie);
-      return copie;
+  function journalVivant() {
+    return journal.filter(function (e) {
+      var c = categorieDe(e.categorie);
+      // Une entrée dont la catégorie est inconnue est gardée : elle vient
+      // probablement d'un appareil dont les catégories n'ont pas encore été
+      // synchronisées, et la faire disparaître serait pire que l'afficher mal.
+      return !c || !c.supprime;
     });
   }
 
@@ -489,7 +504,7 @@
       ligne.appendChild(blason(c.niveau.niveau));
       var corps = elem('div', 'ligne-corps');
       var tete = elem('div', 'ligne-tete');
-      tete.appendChild(elem('span', 'ligne-nom', c.categorie));
+      tete.appendChild(elem('span', 'ligne-nom', nomDe(c.categorie)));
       tete.appendChild(elem('span', 'ligne-temps',
                            S.formatValeur(c.valeur, c.unite)));
       corps.appendChild(tete);
@@ -598,8 +613,8 @@
 
     var lignes = elem('div', 'lignes');
     var agr = bilan();
-    var parNom = {};
-    agr.categories.forEach(function (c) { parNom[c.categorie] = c; });
+    var parId = {};
+    agr.categories.forEach(function (c) { parId[c.categorie] = c; });
 
     categoriesVives().forEach(function (categorie) {
       var ligne = elem('div', 'ligne');
@@ -629,7 +644,7 @@
       });
       tete.appendChild(champNom);
 
-      var compte = parNom[categorie.nom];
+      var compte = parId[categorie.id];
       tete.appendChild(elem('span', 'ligne-temps',
         compte ? S.formatValeur(compte.valeur, compte.unite) : '—'));
 
@@ -678,9 +693,11 @@
     el.progCorps.appendChild(lignes);
 
     el.progCorps.appendChild(elem('p', 'note',
-      'Retirer une catégorie ne supprime pas le temps déjà compté : il reste ' +
-      'dans l’historique. Renommer non plus — le journal retient la catégorie, ' +
-      'pas son nom. Changer d’unité, en revanche, relit tout l’historique de la ' +
+      'Retirer une catégorie retire aussi ce qu’elle avait compté des totaux ' +
+      'et des niveaux. Les entrées restent dans le journal, mais elles ne ' +
+      'comptent plus, et recréer une catégorie du même nom repart de zéro. ' +
+      'Renommer, en revanche, ne coupe rien — le journal retient l’identifiant, ' +
+      'pas le libellé. Changer d’unité, en revanche, relit tout l’historique de la ' +
       'catégorie dans la nouvelle : à ne faire que sur une catégorie encore vide.'));
   }
 
@@ -1138,8 +1155,8 @@
   /** L'état complet du tableau : les catégories vivantes, garnies de leur bilan. */
   function etat() {
     var agr = bilan();
-    var parNom = {};
-    agr.categories.forEach(function (c) { parNom[c.categorie] = c; });
+    var parId = {};
+    agr.categories.forEach(function (c) { parId[c.categorie] = c; });
     return {
       global: agr.global,
       serie: agr.serie,
@@ -1147,8 +1164,8 @@
       total: agr.total,
       sessions: agr.sessions,
       categories: categoriesVives().map(function (c) {
-        var compte = parNom[c.nom];
-        var reglage = S.reglageDe(c.nom, reglages());
+        var compte = parId[c.id];
+        var reglage = S.reglageDe(c.id, reglages());
         return {
           id: c.id, nom: c.nom, unite: reglage.unite, cout: reglage.cout,
           valeur: compte ? compte.valeur : 0,
