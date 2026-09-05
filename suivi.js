@@ -306,28 +306,35 @@
   }
 
   /**
-   * Niveau général, en **points de niveau**.
+   * Niveau général : l'effort total, mesuré dans la même échelle que chacun.
    *
-   * Chaque catégorie vaut sa propre progression : `(niveau − 1) + fraction`.
-   * Dix heures de SQL valent donc un point, vingt séances de muscu aussi — ce
-   * qui est la seule façon honnête d'additionner des unités incomparables.
-   * Additionner les valeurs brutes reviendrait à dire que 200 km pèsent dix
-   * fois 20 séances ; additionner les seuls niveaux entiers ferait sauter la
-   * jauge par à-coups.
+   * L'unité commune est le **mois de rythme visé** : la valeur d'une catégorie
+   * divisée par le coût de son premier niveau. Un mois de muscu et un mois de
+   * SQL pèsent alors exactement pareil, quelles que soient leurs unités — et
+   * c'est la seule équivalence défendable entre des séances et des heures.
    *
-   * Sur une catégorie unique de temps, le résultat est **exactement** celui de
-   * l'ancienne formule : la généralisation ne déplace aucun niveau acquis.
+   * ADDITIONNER LES NIVEAUX ÉTAIT FAUX, et se voyait : quatre catégories au
+   * niveau 2 — un mois chacune — donnaient un général de 5, autant qu'une
+   * pratique de seize mois. Depuis que l'échelle est courbe, deux niveaux de
+   * même rang ne coûtent plus la même chose : le cinquième palier vaut neuf
+   * mois, le premier en vaut un. Les sommer revenait à les tenir pour égaux, et
+   * la largeur se payait au prix de la profondeur.
+   *
+   * Sur une catégorie unique, le général vaut **exactement** le sien — la même
+   * courbe appliquée à la même quantité.
    */
   function niveauGlobal(categories) {
-    var points = categories.reduce(function (somme, c) {
-      return somme + (c.niveau.niveau - 1) + c.niveau.fraction;
+    var mois = categories.reduce(function (somme, c) {
+      return somme + (c.cout > 0 ? c.valeur / c.cout : 0);
     }, 0);
-    var entier = Math.floor(points);
+    var n = niveauPour(mois, 1);
     return {
-      niveau: 1 + entier,
-      points: points,
-      fraction: points - entier,
-      pourSuivant: 1 - (points - entier)
+      niveau: n.niveau,
+      // Le total d'effort, en mois de rythme visé, toutes catégories confondues.
+      points: mois,
+      mois: mois,
+      fraction: n.fraction,
+      pourSuivant: n.pourSuivant
     };
   }
 
