@@ -42,6 +42,7 @@
     neuveRythme: document.getElementById('tab-neuve-rythme'),
     neuveSuffixe: document.getElementById('tab-neuve-suffixe'),
     neuveResume: document.getElementById('tab-neuve-resume'),
+    marque: document.querySelector('#tableau .tab-marque'),
     reglages: document.getElementById('tab-reglages'),
     fermer: document.getElementById('tab-fermer')
   };
@@ -498,13 +499,13 @@
     majBlason(p.blason, etat.global.niveau);
     texte(p.rang, 'Niveau ' + etat.global.niveau);
     largeurJauge(p.jauge, etat.global.fraction);
-    // Les trois piliers sont écrits, et pas seulement le niveau qu'ils donnent :
-    // un général qui surprend doit pouvoir être recalculé de tête. Sans eux, il
-    // ne peut être ni confirmé ni contesté.
+    // Ce qu'il reste à parcourir, et rien d'autre. Les trois piliers y ont
+    // figuré un temps — « tes 3 meilleures : 6 · 5 · 2 » — pour rendre le
+    // niveau vérifiable pendant qu'on cherchait la bonne formule. Une fois
+    // celle-ci arrêtée, ils ne répondaient plus à aucune question : trois
+    // nombres qu'on ne relit jamais, sur la ligne la plus regardée de l'app.
     texte(p.reste,
-      'Tes ' + etat.global.piliers + ' meilleures : ' +
-      etat.global.retenues.map(function (v) { return Math.floor(v) + 1; }).join(' · ') +
-      ' · ' + Math.round(etat.global.fraction * 100) + ' % du niveau ' +
+      Math.round(etat.global.fraction * 100) + ' % du niveau ' +
       (etat.global.niveau + 1));
     if (el.corps.firstChild !== el.general) {
       el.corps.insertBefore(el.general, el.corps.firstChild);
@@ -606,6 +607,10 @@
     });
 
     if (el.corps.lastChild !== ligneNeuve) el.corps.appendChild(ligneNeuve);
+    // La marque ferme la liste, à l'intérieur de ce qui défile.
+    if (el.marque && el.corps.lastChild !== el.marque) {
+      el.corps.appendChild(el.marque);
+    }
     if (bouge) geleJusqua = Date.now() + GEL_MS;
   }
   // Se redessiner sur tout changement du journal, d'où qu'il vienne : un `+1`

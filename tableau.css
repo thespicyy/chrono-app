@@ -171,6 +171,7 @@
 .tab-marque{
   flex:0 0 auto;align-self:center;
   height:13px;width:auto;opacity:.22;
+  margin:6px 0 2px;
   user-select:none;-webkit-user-select:none;pointer-events:none;
 }
 
