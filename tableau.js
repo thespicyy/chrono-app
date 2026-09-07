@@ -290,6 +290,10 @@
     uniteNeuve = 'fois';
     dessinerUnitesNeuve();
     poserObjectifNeuf();
+    // La page défile désormais : le formulaire s'ouvre sous la liste, hors de
+    // l'écran. Sans ce défilement, le bouton paraîtrait ne rien faire.
+    try { el.neuve.scrollIntoView({ block: 'end', behavior: 'smooth' }); }
+    catch (err) { /* sans gravité */ }
     try { el.neuveNom.focus(); } catch (err) { /* sans gravité */ }
   }
 

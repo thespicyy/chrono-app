@@ -77,7 +77,47 @@
      absent. */
   .scene,.barre,.durees,.coin,.heure-coin,.marque{display:none !important;}
 
-  .tableau{display:flex;}
+  /*
+   * C'EST LE DOCUMENT QUI DÉFILE, comme dans TaskMint et KeyMint.
+   *
+   * Un cadre en `position:fixed` est borné à `innerHeight` — et iOS en retire
+   * la hauteur de sa barre d'état : 894 points pour un écran de 956. La page
+   * remplissait donc parfaitement une fenêtre amputée, et les soixante-deux
+   * points manquants restaient noirs quoi qu'on écrive. Aucune marge, aucune
+   * unité de fenêtre ne les rendait : ils étaient hors du cadre.
+   *
+   * Une page qui défile d'elle-même n'a pas cette borne. Le cadre fixe reste
+   * en paysage, où il est justifié : l'horloge doit occuper l'écran sans
+   * bouger, et rien n'y défile.
+   */
+  html,body{height:auto;min-height:100%;overflow:visible;}
+  body{min-height:100dvh;background:var(--bg);}
+
+  .tableau{
+    display:flex;
+    position:static;height:auto;min-height:100dvh;
+    overflow:visible;
+    padding-bottom:calc(env(safe-area-inset-bottom) + 8px);
+  }
+
+  /* La zone de contenu n'est plus une zone de défilement : c'est la page. Sa
+     largeur redevient normale — le débordement de trente-deux pixels ne
+     servait qu'à cacher une barre qui n'existe plus ici. */
+  .tableau .tab-corps.sans-barre{
+    flex:0 0 auto;overflow:visible;
+    width:100%;padding-right:0;padding-bottom:0;
+  }
+
+  /* Le bandeau d'annulation, lui, reste sous les yeux : il ne dure que quelques
+     secondes, et le chercher en faisant défiler la page lui ferait rater sa
+     seule raison d'être. */
+  .tab-annuler{
+    position:fixed;z-index:11;
+    left:max(env(safe-area-inset-left),16px);
+    right:max(env(safe-area-inset-right),16px);
+    bottom:calc(env(safe-area-inset-bottom) + 12px);
+    margin-bottom:0;
+  }
 }
 
 /* ------------------------------------------------------------- en-tête */
