@@ -112,10 +112,9 @@
    * Celle-ci n'est pas une zone interdite : c'est là que passe la barre
    * d'accueil, qui flotte par-dessus la page. La réserver ne protégeait rien —
    * elle laissait seulement un bandeau noir au bas d'une application qui, elle,
-   * est noire. Douze pixels suffisent pour que la dernière carte ne touche pas
-   * les coins arrondis de l'écran.
+   * est noire.
    */
-  padding-bottom:12px;
+  padding-bottom:0;
 }
 
 .tab-resume{display:flex;flex-direction:column;gap:clamp(10px,1.8vh,16px);}
