@@ -160,6 +160,20 @@
   padding:clamp(13px,2.2vh,18px);
 }
 
+/* --------------------------------------------------------------- la marque */
+
+/*
+ * En pied, et dans le flux : la marque de la face paysage est fixée en haut de
+ * l'écran, ce qui convient à une horloge qu'on ne touche pas. Ici la page
+ * défile et se tape ; une marque flottante masquerait une ligne, et recevrait
+ * les gestes qui lui étaient destinés.
+ */
+.tab-marque{
+  flex:0 0 auto;align-self:center;
+  height:13px;width:auto;opacity:.22;
+  user-select:none;-webkit-user-select:none;pointer-events:none;
+}
+
 /* ------------------------------------------------------- barre d'annulation */
 
 /*
