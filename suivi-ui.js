@@ -1168,6 +1168,18 @@
       jours: agr.jours,
       total: agr.total,
       sessions: agr.sessions,
+      /*
+       * Classées par niveau décroissant, puis par avancement dans le niveau.
+       *
+       * L'ordre était celui du tableau en mémoire — création locale, ou retour
+       * de la synchronisation. Un ordre de hasard, donc, et différent d'un
+       * appareil à l'autre : la même liste ne se lisait pas pareil sur deux
+       * téléphones. Le moteur savait déjà trier ; cette vue ne s'en servait pas.
+       *
+       * À égalité parfaite, le nom départage : sans ce dernier critère, deux
+       * catégories vides échangeraient leur place à chaque rendu, au gré de
+       * l'ordre d'arrivée.
+       */
       categories: categoriesVives().map(function (c) {
         var compte = parId[c.id];
         var reglage = S.reglageDe(c.id, reglages());
@@ -1177,6 +1189,14 @@
           aujourdhui: compte ? compte.aujourdhui : 0,
           niveau: compte ? compte.niveau : S.niveauPour(0, reglage.cout)
         };
+      }).sort(function (a, b) {
+        if (b.niveau.niveau !== a.niveau.niveau) {
+          return b.niveau.niveau - a.niveau.niveau;
+        }
+        if (b.niveau.fraction !== a.niveau.fraction) {
+          return b.niveau.fraction - a.niveau.fraction;
+        }
+        return a.nom.localeCompare(b.nom, 'fr');
       })
     };
   }
