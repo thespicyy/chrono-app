@@ -106,9 +106,16 @@
   flex:1 1 auto;min-height:0;
   overflow-y:auto;overscroll-behavior:contain;
   display:flex;flex-direction:column;gap:clamp(10px,1.8vh,16px);
-  /* La zone descend jusqu'au bord de l'écran ; c'est son contenu qui s'arrête
-     au-dessus de l'indicateur d'accueil, une fois déroulé jusqu'en bas. */
-  padding-bottom:max(env(safe-area-inset-bottom),14px);
+  /*
+   * LE CONTENU VA JUSQU'EN BAS DE L'ÉCRAN, marge de sécurité comprise.
+   *
+   * Celle-ci n'est pas une zone interdite : c'est là que passe la barre
+   * d'accueil, qui flotte par-dessus la page. La réserver ne protégeait rien —
+   * elle laissait seulement un bandeau noir au bas d'une application qui, elle,
+   * est noire. Douze pixels suffisent pour que la dernière carte ne touche pas
+   * les coins arrondis de l'écran.
+   */
+  padding-bottom:12px;
 }
 
 .tab-resume{display:flex;flex-direction:column;gap:clamp(10px,1.8vh,16px);}
@@ -190,6 +197,10 @@
  * demander confirmation au moment du geste — confirmer chaque tape coûterait
  * cher à chaque fois pour éviter une erreur rare.
  */
+/* Ces deux-là gardent la marge de sécurité, et pour une raison précise : on
+   les TOUCHE. Un bouton posé au ras du bord dispute sa place au balayage
+   d'accueil du système, qui gagne — la tape part ailleurs. Ce qui se lit peut
+   descendre jusqu'en bas ; ce qui se presse, non. */
 .tab-annuler{
   flex:0 0 auto;
   margin-bottom:max(env(safe-area-inset-bottom),14px);
