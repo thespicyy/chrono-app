@@ -29,10 +29,14 @@
   z-index:9;
   background:var(--bg);
   /* Marges latérales égales, comme la scène : sur un appareil dont l'encoche
-     n'est que d'un côté, prendre chaque marge de son côté décentre tout. */
+     n'est que d'un côté, prendre chaque marge de son côté décentre tout.
+     AUCUNE MARGE EN BAS : elle est portée par la zone qui défile, à l'intérieur
+     d'elle. Posée ici, elle s'ajoutait SOUS le défilement — le contenu
+     s'arrêtait avant le bord de l'écran, et la marge de sécurité de l'iPhone
+     laissait une bande noire de cinquante pixels sous une carte coupée. */
   padding:max(env(safe-area-inset-top),14px)
           max(env(safe-area-inset-right),env(safe-area-inset-left),16px)
-          max(env(safe-area-inset-bottom),14px)
+          0
           max(env(safe-area-inset-right),env(safe-area-inset-left),16px);
   gap:14px;
   /* Rogne l'excédent de `.tab-corps` : voir « la géométrie » dans chrono.css. */
@@ -102,6 +106,9 @@
   flex:1 1 auto;min-height:0;
   overflow-y:auto;overscroll-behavior:contain;
   display:flex;flex-direction:column;gap:clamp(10px,1.8vh,16px);
+  /* La zone descend jusqu'au bord de l'écran ; c'est son contenu qui s'arrête
+     au-dessus de l'indicateur d'accueil, une fois déroulé jusqu'en bas. */
+  padding-bottom:max(env(safe-area-inset-bottom),14px);
 }
 
 .tab-resume{display:flex;flex-direction:column;gap:clamp(10px,1.8vh,16px);}
@@ -185,6 +192,7 @@
  */
 .tab-annuler{
   flex:0 0 auto;
+  margin-bottom:max(env(safe-area-inset-bottom),14px);
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:11px 14px;
   border-radius:14px;
@@ -204,6 +212,7 @@
 
 .tab-neuve{
   flex:0 0 auto;
+  margin-bottom:max(env(safe-area-inset-bottom),14px);
   display:flex;flex-direction:column;gap:10px;
   padding:14px;
   border:1px solid var(--border-strong);border-radius:16px;
