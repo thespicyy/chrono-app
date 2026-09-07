@@ -713,6 +713,29 @@
     return texte;
   }
 
+  /**
+   * Ce qui reste entre le bas du contenu et le bas de la fenêtre.
+   *
+   * Une bande noire en pied a trois causes possibles — une marge posée par la
+   * page, une fenêtre plus courte que l'écran, ou une barre dessinée par le
+   * système par-dessus tout. Elles se ressemblent à l'œil et appellent des
+   * corrections opposées ; ces trois nombres les séparent, et rien ne permet de
+   * les obtenir depuis un poste de développement.
+   */
+  function basDeLaPage() {
+    var corps = document.getElementById('tab-corps');
+    var page = document.getElementById('tableau');
+    if (!corps || !page) return 'page absente';
+    var fenetre = window.innerHeight;
+    var ecran = (window.screen && window.screen.height) || 0;
+    return 'sous le contenu ' +
+           Math.round(fenetre - corps.getBoundingClientRect().bottom) + ' px' +
+           ' · sous la page ' +
+           Math.round(fenetre - page.getBoundingClientRect().bottom) + ' px' +
+           ' · fenêtre ' + Math.round(fenetre) +
+           ' pour un écran de ' + Math.round(ecran);
+  }
+
   function dessinerSynchro() {
     var etat = elem('div', 'etat-synchro' +
       (etatSync === 'ok' ? ' ok' : (etatSync === 'panne' ? ' panne' : '')));
@@ -815,7 +838,8 @@
       ' points, densité ' + (window.devicePixelRatio || 1) +
       ' · zones sûres haut/droite/bas/gauche : ' + marges.join(' / ') + ' px' +
       ' · écran ' + (window.screen ? window.screen.width + ' × ' +
-                     window.screen.height : '?') + '.'));
+                     window.screen.height : '?') +
+      ' · ' + basDeLaPage() + '.'));
 
     // Le verdict, en clair. C'est lui qui dit si un décalage se corrige ici ou
     // dans les réglages du téléphone — et les deux ne se ressemblent pas.

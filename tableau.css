@@ -24,6 +24,12 @@
 .tableau{
   display:none;flex-direction:column;
   position:fixed;inset:0;
+  /* `inset:0` mesure la fenêtre telle que la page la connaît ; `dvh` mesure
+     celle que le système affiche réellement, barres comprises. Les deux
+     coïncident presque partout — et là où elles diffèrent, c'est la seconde
+     qui décrit l'écran. Ignorée par les navigateurs qui ne la connaissent
+     pas, auquel cas `inset:0` continue de faire le travail. */
+  height:100dvh;
   /* Sous les voiles (10) : les catégories et la synchronisation s'ouvrent
      par-dessus elle, jamais l'inverse. */
   z-index:9;
